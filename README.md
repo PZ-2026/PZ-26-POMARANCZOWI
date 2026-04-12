@@ -1,1 +1,1 @@
-System do rezerwacji wizyt w salonie fryzjerskim
+System do rezerwacji wizyt w salonie fryzjerskim.

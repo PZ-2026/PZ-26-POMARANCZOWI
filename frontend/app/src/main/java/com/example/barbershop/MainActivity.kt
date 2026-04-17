@@ -19,7 +19,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val homeViewModel: HomeViewModel = viewModel()
             val settingsViewModel: SettingsViewModel = viewModel()
-            
+            val loginViewModel: LoginViewModel = viewModel()
+
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val navController = rememberNavController()
 
@@ -31,13 +32,22 @@ class MainActivity : ComponentActivity() {
                     composable("home") {
                         HomeScreen(
                             viewModel = homeViewModel,
-                            onNavigateToSettings = { navController.navigate("settings") }
+                            onNavigateToSettings = { navController.navigate("settings") },
+                            onNavigateToLogin = { navController.navigate("login") }
                         )
                     }
                     composable("settings") {
                         SettingsScreen(
                             viewModel = settingsViewModel,
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("login") {
+                        LoginScreen(
+                            viewModel = loginViewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToRegister = {  }, // TODO: Implement navigation to register screen
+                            onForgotPassword = {  } // TODO: Implement navigation to forgot password screen
                         )
                     }
                 }

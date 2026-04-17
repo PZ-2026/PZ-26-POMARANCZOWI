@@ -51,7 +51,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -111,7 +112,10 @@ fun HomeScreen(
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                         selected = selectedItem == 2,
-                        onClick = { selectedItem = 2 },
+                        onClick = {
+                            selectedItem = 2
+                            onNavigateToLogin()
+                        },
                         colors = navItemColors
                     )
                     NavigationBarItem(

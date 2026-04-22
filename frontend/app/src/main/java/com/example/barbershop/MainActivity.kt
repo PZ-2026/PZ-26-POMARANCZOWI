@@ -20,6 +20,8 @@ class MainActivity : ComponentActivity() {
             val homeViewModel: HomeViewModel = viewModel()
             val settingsViewModel: SettingsViewModel = viewModel()
             val loginViewModel: LoginViewModel = viewModel()
+            // DODANE: Inicjalizacja RegisterViewModel
+            val registerViewModel: RegisterViewModel = viewModel()
 
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val navController = rememberNavController()
@@ -46,8 +48,14 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             viewModel = loginViewModel,
                             onNavigateBack = { navController.popBackStack() },
-                            onNavigateToRegister = {  }, // TODO: Implement navigation to register screen
-                            onForgotPassword = {  } // TODO: Implement navigation to forgot password screen
+                            onNavigateToRegister = { navController.navigate("register") },
+                            onForgotPassword = {  }
+                        )
+                    }
+                    composable("register") {
+                        RegisterScreen(
+                            viewModel = registerViewModel,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                 }

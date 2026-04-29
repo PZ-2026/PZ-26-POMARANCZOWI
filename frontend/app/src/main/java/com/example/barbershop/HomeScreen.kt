@@ -52,7 +52,8 @@ import androidx.compose.ui.unit.dp
 fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToSettings: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToBooking: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -127,7 +128,10 @@ fun HomeScreen(
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
                         selected = selectedItem == 1,
-                        onClick = { selectedItem = 1 },
+                        onClick = {
+                            selectedItem = 1
+                            onNavigateToBooking()
+                        },
                         colors = navItemColors
                     )
                 }
@@ -169,17 +173,17 @@ fun HomeScreen(
                 ServiceItem(
                     title = "Standard Haircut",
                     price = "$140",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Budget Haircut",
                     price = "$120",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
             }
 
@@ -187,43 +191,43 @@ fun HomeScreen(
 
             // Hair Services Section Header
             SectionHeader(title = "Hair services")
-            
+
             // Indented Hair Services
             Column(modifier = Modifier.padding(start = 16.dp)) {
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
                 ServiceItem(
                     title = "Expensive Haircut",
                     price = "$500",
-                    onBookClick = { /* TODO */ }
+                    onBookClick = { onNavigateToBooking() }
                 )
             }
         }

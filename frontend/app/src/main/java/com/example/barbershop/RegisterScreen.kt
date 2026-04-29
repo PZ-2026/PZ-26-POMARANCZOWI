@@ -1,5 +1,6 @@
 package com.example.barbershop
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +24,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun RegisterScreen(
     viewModel: RegisterViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -132,6 +134,23 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
                 Text("Sign Up", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Already have an account? ",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Log in",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.clickable { onNavigateToLogin() }
+                )
             }
         }
     }

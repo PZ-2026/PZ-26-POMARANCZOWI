@@ -26,6 +26,8 @@ class MainActivity : ComponentActivity() {
             val loginViewModel: LoginViewModel = viewModel()
             val registerViewModel: RegisterViewModel = viewModel()
             val bookingViewModel: BookingViewModel = viewModel()
+            val ForgotPasswordViewModel: ForgotPasswordViewModel = viewModel()
+            val resetPasswordViewModel: ResetPasswordViewModel = viewModel()
 
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val navController = rememberNavController()
@@ -54,7 +56,7 @@ class MainActivity : ComponentActivity() {
                             viewModel = loginViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToRegister = { navController.navigate("register") },
-                            onForgotPassword = {  }
+                            onForgotPassword = { navController.navigate("forgot") }
                         )
                     }
                     composable("register") {
@@ -62,6 +64,22 @@ class MainActivity : ComponentActivity() {
                             viewModel = registerViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToLogin = { navController.navigate("login") },
+                        )
+                    }
+                    composable("forgot") {
+                        ForgotPasswordScreen(
+                            viewModel = ForgotPasswordViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("reset_password") {
+                        ResetPasswordScreen(
+                            viewModel = resetPasswordViewModel,
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("booking") {

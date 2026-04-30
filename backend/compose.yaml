@@ -7,3 +7,18 @@ services:
       - 'POSTGRES_USER=myuser'
     ports:
       - '5432'
+    networks:
+      - app-network
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

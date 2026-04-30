@@ -62,6 +62,19 @@ public class JwtService {
         return claims.get("email", String.class);
     }
 
+    public String getRoleFromToken(String token) {
+        String secretString = jwtConfig.getSecretString();
+        SecretKey key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretString));
+
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return claims.get("role", String.class);
+    }
+
     public boolean validateToken(String token) {
         try {
             String secretString = jwtConfig.getSecretString();

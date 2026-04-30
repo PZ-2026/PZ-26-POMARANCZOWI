@@ -52,6 +52,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 request.setAttribute("email", email);
                 request.setAttribute("role", role);
 
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    userId, null, new ArrayList<>()
+                );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
             } catch (Exception e) {
                 // Invalid token - don't set attributes
             }

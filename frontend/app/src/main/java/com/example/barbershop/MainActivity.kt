@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.ui.theme.BarbershopTheme
 // Pamiętaj o imporcie dla ekranu rezerwacji! Jeśli Android Studio podświetli na czerwono,
 // kliknij Alt+Enter na BookingScreen i BookingViewModel, aby je zaimportować.
@@ -19,6 +20,7 @@ import com.example.barbershop.booking.BookingViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NetworkClient.init(this)
         enableEdgeToEdge()
         setContent {
             val homeViewModel: HomeViewModel = viewModel()

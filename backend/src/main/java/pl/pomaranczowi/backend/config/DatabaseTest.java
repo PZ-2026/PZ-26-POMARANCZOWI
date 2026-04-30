@@ -50,8 +50,10 @@ public class DatabaseTest {
             barberServiceRepo.save(bs1);
             barberServiceRepo.save(bs2);
 
-            Availability avail = new Availability(null, barber, 1, LocalTime.of(9, 0), LocalTime.of(17, 0));
-            availabilityRepo.save(avail);
+            for (int day = 1; day <= 7; day++) {
+                Availability avail = new Availability(null, barber, day, LocalTime.of(9, 0), LocalTime.of(17, 0));
+                availabilityRepo.save(avail);
+            }
 
             System.out.println("Użytkownicy: " + userRepo.count());
             System.out.println("Barberzy: " + barberRepo.count());

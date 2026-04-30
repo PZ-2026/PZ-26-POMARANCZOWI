@@ -85,6 +85,43 @@ fun BookingScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState),
         ) {
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            if (uiState.errorMessage != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        text = uiState.errorMessage!!,
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
+            if (uiState.availableServices.isEmpty() && !uiState.isLoading && uiState.errorMessage == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No services available. Check connection.", color = MaterialTheme.colorScheme.error)
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             SectionTitle("Select Service")

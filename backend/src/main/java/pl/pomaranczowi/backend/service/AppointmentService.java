@@ -120,9 +120,10 @@ public class AppointmentService {
         appointment = appointmentRepository.save(appointment);
 
         for (pl.pomaranczowi.backend.entity.Service service : services) {
-            AppointmentService as = new AppointmentService();
-            // Can't use AppointmentService entity here due to naming conflict
-            // Using repository directly instead
+            pl.pomaranczowi.backend.entity.AppointmentService as = new pl.pomaranczowi.backend.entity.AppointmentService();
+            as.setAppointment(appointment);
+            as.setService(service);
+            appointmentServiceRepository.save(as);
         }
 
         return mapToResponse(appointment);

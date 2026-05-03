@@ -71,7 +71,7 @@ public class AppointmentService {
     public AppointmentResponse createAppointment(AppointmentRequest request, Long userId) {
         LocalDateTime minTime = LocalDateTime.now().plusMinutes(30);
         if (request.getStartTime().isBefore(minTime)) {
-            throw new RuntimeException("Rezerwacja możliwa min. 30 minut do przodu");
+            throw new RuntimeException("Booking available minimum 30 minutes in advance");
         }
 
         User client = new User();
@@ -106,7 +106,7 @@ public class AppointmentService {
                 .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED)
                 .anyMatch(a -> !(a.getEndTime().isBefore(startTime) || a.getStartTime().isAfter(endTime)));
         if (collision) {
-            throw new RuntimeException("Termin jest zajęty");
+            throw new RuntimeException("Time slot is occupied");
         }
 
         Appointment appointment = new Appointment();

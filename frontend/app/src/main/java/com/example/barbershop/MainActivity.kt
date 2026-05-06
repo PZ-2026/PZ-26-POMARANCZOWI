@@ -12,8 +12,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.ui.theme.BarbershopTheme
-// Pamiętaj o imporcie dla ekranu rezerwacji! Jeśli Android Studio podświetli na czerwono,
-// kliknij Alt+Enter na BookingScreen i BookingViewModel, aby je zaimportować.
 import com.example.barbershop.booking.BookingScreen
 import com.example.barbershop.booking.BookingViewModel
 
@@ -28,8 +26,10 @@ class MainActivity : ComponentActivity() {
             val loginViewModel: LoginViewModel = viewModel()
             val registerViewModel: RegisterViewModel = viewModel()
             val bookingViewModel: BookingViewModel = viewModel()
-            val ForgotPasswordViewModel: ForgotPasswordViewModel = viewModel()
+            val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel()
             val resetPasswordViewModel: ResetPasswordViewModel = viewModel()
+            val adminViewModel: AdminViewModel = viewModel()
+            val employeeViewModel: EmployeeViewModel = viewModel()
 
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val navController = rememberNavController()
@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                             viewModel = loginViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToRegister = { navController.navigate("register") },
-                            onForgotPassword = { navController.navigate("forgot") }
+                            onForgotPassword = { navController.navigate("forgot") },
                         )
                     }
                     composable("register") {
@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("forgot") {
                         ForgotPasswordScreen(
-                            viewModel = ForgotPasswordViewModel,
+                            viewModel = forgotPasswordViewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -88,6 +88,27 @@ class MainActivity : ComponentActivity() {
                         BookingScreen(
                             viewModel = bookingViewModel,
                             onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                    composable("admin_panel") {
+                        AdminScreen(
+                            viewModel = adminViewModel,
+                            onNavigate = { route -> navController.navigate(route) },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+                    composable("employee_panel") {
+                        EmployeeScreen(
+                            viewModel = employeeViewModel,
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         )
                     }
                 }

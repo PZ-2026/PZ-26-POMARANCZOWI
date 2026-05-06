@@ -11,7 +11,9 @@ services:
       - app-network
 
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "8443:8443"
     depends_on:

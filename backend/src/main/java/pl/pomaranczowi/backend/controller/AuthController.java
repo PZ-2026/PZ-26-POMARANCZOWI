@@ -27,4 +27,10 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> me() {
+        AuthResponse response = authService.me();
+        return ResponseEntity.ok(response);
+    }
 }

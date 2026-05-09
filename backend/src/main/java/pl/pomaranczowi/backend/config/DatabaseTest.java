@@ -2,14 +2,19 @@ package pl.pomaranczowi.backend.config;
 
 import pl.pomaranczowi.backend.entity.*;
 import pl.pomaranczowi.backend.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Configuration
 public class DatabaseTest {
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Bean
     public org.springframework.boot.CommandLineRunner testDb(
@@ -25,11 +30,11 @@ public class DatabaseTest {
                 return;
             }
 
-            User admin = new User(null, "Admin User", "admin@test.com", "111111111", "hash1", LocalDateTime.now(),
+            User admin = new User(null, "Admin User", "admin@test.com", "111111111", passwordEncoder.encode("password1"), LocalDateTime.now(),
                     UserRole.ADMIN);
-            User barber1 = new User(null, "Barber One", "barber1@test.com", "222222222", "hash2", LocalDateTime.now(),
+            User barber1 = new User(null, "Barber One", "barber1@test.com", "222222222", passwordEncoder.encode("password2"), LocalDateTime.now(),
                     UserRole.EMPLOYEE);
-            User client1 = new User(null, "Client One", "client1@test.com", "333333333", "hash3", LocalDateTime.now(),
+            User client1 = new User(null, "Client One", "client1@test.com", "333333333", passwordEncoder.encode("password3"), LocalDateTime.now(),
                     UserRole.CLIENT);
 
             admin = userRepo.save(admin);

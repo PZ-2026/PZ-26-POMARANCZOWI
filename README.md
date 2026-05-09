@@ -32,7 +32,7 @@ Hasło: `password3`
 
 # Linki
 
-## DB (check in docker): http://localhost:54823/
+## DB (check in docker, this should be fixed port now): http://localhost:5432/
 - 'POSTGRES_DB=barber_db'
 - 'POSTGRES_PASSWORD=secret'
 - 'POSTGRES_USER=myuser'

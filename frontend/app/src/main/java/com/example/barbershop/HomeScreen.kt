@@ -58,7 +58,9 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToBooking: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToEmployeePanel: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -134,7 +136,9 @@ fun HomeScreen(
                             selectedItem = 2
                             viewModel.onProfileClick(
                                 navigateToLogin = onNavigateToLogin,
-                                navigateToProfile = onNavigateToProfile
+                                navigateToProfile = onNavigateToProfile,
+                                navigateToEmployeePanel = onNavigateToEmployeePanel,
+                                navigateToAdminPanel = onNavigateToAdminPanel
                             )
                         },
                         colors = navItemColors

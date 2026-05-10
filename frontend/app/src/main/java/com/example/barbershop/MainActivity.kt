@@ -46,7 +46,9 @@ class MainActivity : ComponentActivity() {
                             onNavigateToSettings = { navController.navigate("settings") },
                             onNavigateToLogin = { navController.navigate("login") },
                             onNavigateToBooking = { navController.navigate("booking") },
-                            onNavigateToProfile = { navController.navigate("profile") }
+                            onNavigateToProfile = { navController.navigate("profile") },
+                            onNavigateToEmployeePanel = { navController.navigate("employee_panel") },
+                            onNavigateToAdminPanel = { navController.navigate("admin_panel") }
                         )
                     }
                     composable("settings") {

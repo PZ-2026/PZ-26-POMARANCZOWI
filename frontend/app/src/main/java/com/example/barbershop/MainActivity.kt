@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
             val resetPasswordViewModel: ResetPasswordViewModel = viewModel()
             val adminViewModel: AdminViewModel = viewModel()
             val employeeViewModel: EmployeeViewModel = viewModel()
+            val userProfileViewModel: UserProfileViewModel = viewModel()
 
             val settingsUiState by settingsViewModel.uiState.collectAsState()
             val navController = rememberNavController()
@@ -44,7 +45,8 @@ class MainActivity : ComponentActivity() {
                             viewModel = homeViewModel,
                             onNavigateToSettings = { navController.navigate("settings") },
                             onNavigateToLogin = { navController.navigate("login") },
-                            onNavigateToBooking = { navController.navigate("booking") }
+                            onNavigateToBooking = { navController.navigate("booking") },
+                            onNavigateToProfile = { navController.navigate("profile") }
                         )
                     }
                     composable("settings") {
@@ -59,6 +61,11 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToRegister = { navController.navigate("register") },
                             onForgotPassword = { navController.navigate("forgot") },
+                            onNavigateToHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("register") {
@@ -109,6 +116,18 @@ class MainActivity : ComponentActivity() {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
+                        )
+                    }
+                    composable("profile") {
+                        UserProfileScreen(
+                            viewModel = userProfileViewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            onNavigateToBooking = { navController.navigate("booking") }
                         )
                     }
                 }

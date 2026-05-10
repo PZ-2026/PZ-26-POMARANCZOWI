@@ -45,7 +45,8 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onForgotPassword: () -> Unit
+    onForgotPassword: () -> Unit,
+    onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -145,7 +146,7 @@ fun LoginScreen(
 
             // Login Button
             Button(
-                onClick = { viewModel.login() },
+                onClick = { viewModel.login(onNavigateToHome) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
@@ -159,24 +160,6 @@ fun LoginScreen(
                 Text(
                     text = error,
                     color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            if (uiState.isLoggedIn) {
-                val data = uiState.authResponse
-                Text(
-                    text = "Login successful! \n" +
-                            "Login data: \n" +
-                            "Name: ${data?.name}\n" +
-                            "Email: ${data?.email}\n" +
-                            "Role: ${data?.role}\n" +
-                            "Phone: ${data?.phone}\n" +
-                            "UserId: ${data?.userId}",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -32,8 +33,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -46,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.barbershop.network.NetworkClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,11 +57,25 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToBooking: () -> Unit
+    onNavigateToBooking: () -> Unit,
+    onNavigateToProfile: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     var selectedItem by remember { mutableIntStateOf(0) }
+
+    if (uiState.showNetworkErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissError() },
+            title = { Text("Network Error") },
+            text = { Text("Unable to connect to the server. Please check your internet connection.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissError() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -109,13 +127,15 @@ fun HomeScreen(
                         indicatorColor = Color.Transparent
                     )
 
-                    // TODO: Replace with actual navigation items
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                         selected = selectedItem == 2,
                         onClick = {
                             selectedItem = 2
-                            onNavigateToLogin()
+                            viewModel.onProfileClick(
+                                navigateToLogin = onNavigateToLogin,
+                                navigateToProfile = onNavigateToProfile
+                            )
                         },
                         colors = navItemColors
                     )
@@ -147,10 +167,20 @@ fun HomeScreen(
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "Welcome to Barber Shop!", // TODO: Add username if logged in.
+                text = "Welcome to Barber Shop!",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground
             )
+
+            uiState.userName?.let { name ->
+                if (NetworkClient.isLoggedIn()) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -57,6 +57,10 @@ object NetworkClient {
         return tokenManager?.isLoggedIn() ?: false
     }
 
+    fun logout() {
+        tokenManager?.logout()
+    }
+
     private fun createTrustAllCerts(): Array<TrustManager> {
         return arrayOf(object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}

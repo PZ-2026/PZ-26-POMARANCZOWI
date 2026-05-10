@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class LoginUiState(
     val email: String = "",
@@ -18,7 +19,6 @@ data class LoginUiState(
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isLoggedIn: Boolean = false,
     val authResponse: AuthResponse? = null
 )
 
@@ -38,29 +38,33 @@ class LoginViewModel : ViewModel() {
         _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun login() {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun login(navigateToHome: () -> Unit) {
+        viewModelScope.launch { // Default is Main thread
             _uiState.update { it.copy(isLoading = true, errorMessage = null, authResponse = null) }
 
             try {
-                val response = NetworkClient.authApi.login(
-                    LoginRequest(
-                        email = _uiState.value.email,
-                        password = _uiState.value.password
+                // Perform the network call on the IO thread
+                val response = withContext(Dispatchers.IO) {
+                    NetworkClient.authApi.login(
+                        LoginRequest(
+                            email = _uiState.value.email,
+                            password = _uiState.value.password
+                        )
                     )
-                )
+                }
 
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
-                    println("Login successful: $authResponse")
                     NetworkClient.saveToken(authResponse.token)
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            isLoggedIn = true,
                             authResponse = authResponse
                         )
                     }
+
+                    navigateToHome()
                 } else {
                     _uiState.update {
                         it.copy(

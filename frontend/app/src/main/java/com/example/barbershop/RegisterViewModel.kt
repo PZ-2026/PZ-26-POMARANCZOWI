@@ -56,5 +56,7 @@ class RegisterViewModel : ViewModel() {
 
         _uiState.update { it.copy(errorMessage = null, isLoading = true) }
 
+        // TODO: Add register logic, and redirect to login or home on success
+
     }
 }

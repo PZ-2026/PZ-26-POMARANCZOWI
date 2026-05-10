@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 data class UserProfileUiState(
     val name: String = "",
@@ -22,35 +23,32 @@ class UserProfileViewModel : ViewModel() {
     val uiState: StateFlow<UserProfileUiState> = _uiState.asStateFlow()
 
     init {
-        loadProfile()
-    }
-
-    fun loadProfile() {
+        // Observe global auth state
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            try {
-                val response = NetworkClient.authApi.getMe()
-                if (response.isSuccessful && response.body() != null) {
-                    val data = response.body()!!
-                    _uiState.update { 
-                        it.copy(
-                            name = data.name,
-                            email = data.email,
-                            phone = data.phone,
-                            isLoading = false
-                        ) 
+            NetworkClient.authState.collect { authState ->
+                when (authState) {
+                    is NetworkClient.AuthState.LoggedIn -> {
+                        _uiState.update { 
+                            it.copy(
+                                name = authState.name,
+                                email = authState.email,
+                                phone = authState.phone,
+                                isLoading = false
+                            ) 
+                        }
                     }
-                } else {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load profile") }
+                    is NetworkClient.AuthState.LoggedOut -> {
+                        // Reset state on logout with a 0.75 second delay
+                        delay(750);
+                        _uiState.update { UserProfileUiState() }
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = e.message) }
             }
         }
     }
 
-    fun logout(navigateToLogin: () -> Unit) {
+    fun logout(navigateToHome: () -> Unit) {
         NetworkClient.logout()
-        navigateToLogin()
+        navigateToHome()
     }
 }

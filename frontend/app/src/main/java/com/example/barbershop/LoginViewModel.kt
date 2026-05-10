@@ -18,8 +18,7 @@ data class LoginUiState(
     val password: String = "",
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val authResponse: AuthResponse? = null
+    val errorMessage: String? = null
 )
 
 class LoginViewModel : ViewModel() {
@@ -39,11 +38,10 @@ class LoginViewModel : ViewModel() {
     }
 
     fun login(navigateToHome: () -> Unit) {
-        viewModelScope.launch { // Default is Main thread
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, authResponse = null) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // Perform the network call on the IO thread
                 val response = withContext(Dispatchers.IO) {
                     NetworkClient.authApi.login(
                         LoginRequest(
@@ -55,14 +53,11 @@ class LoginViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
-                    NetworkClient.saveToken(authResponse.token)
+                    
+                    // Centralized state update
+                    NetworkClient.saveAuthResponse(authResponse)
 
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            authResponse = authResponse
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false) }
 
                     navigateToHome()
                 } else {

@@ -59,9 +59,7 @@ fun UserProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.logout(
-                        navigateToLogin = { onNavigateToHome() }
-                    ) }) {
+                    IconButton(onClick = { viewModel.logout({ onNavigateToHome() }) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Logout"

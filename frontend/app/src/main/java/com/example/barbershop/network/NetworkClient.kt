@@ -2,6 +2,9 @@ package com.example.barbershop.network
 
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -17,10 +20,36 @@ object NetworkClient {
     private var retrofit: Retrofit? = null
     private var okHttpClient: OkHttpClient? = null
 
+    private val _authState = MutableStateFlow<AuthState>(AuthState.LoggedOut)
+    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    sealed class AuthState {
+        object LoggedOut : AuthState()
+        data class LoggedIn(
+            val userId: Long,
+            val name: String,
+            val email: String,
+            val phone: String,
+            val role: String
+        ) : AuthState()
+    }
+
     fun init(context: Context) {
         Log.d("NetworkClient", "Initializing NetworkClient...")
-        tokenManager = TokenManager(context)
+        val tm = TokenManager(context)
+        tokenManager = tm
         
+        // Restore auth state from preferences
+        if (tm.isLoggedIn()) {
+            _authState.value = AuthState.LoggedIn(
+                userId = tm.getUserId(),
+                name = tm.getUserName() ?: "",
+                email = tm.getUserEmail() ?: "",
+                phone = tm.getUserPhone() ?: "",
+                role = tm.getUserRole() ?: ""
+            )
+        }
+
         val loggingInterceptor = HttpLoggingInterceptor { message ->
             Log.d("OkHttp", message)
         }.apply {
@@ -32,7 +61,7 @@ object NetworkClient {
         sslContext.init(null, trustAllCerts, SecureRandom())
 
         okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor(tokenManager!!))
+            .addInterceptor(AuthInterceptor(tm))
             .addInterceptor(loggingInterceptor)
             .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
             .hostnameVerifier { _, _ -> true }
@@ -49,16 +78,35 @@ object NetworkClient {
         Log.d("NetworkClient", "NetworkClient initialized with baseUrl: ${ApiConfig.BASE_URL}")
     }
 
-    fun saveToken(token: String) {
-        tokenManager?.saveToken(token)
+    fun saveAuthResponse(authResponse: AuthResponse) {
+        tokenManager?.saveAuthResponse(
+            token = authResponse.token,
+            userId = authResponse.userId,
+            name = authResponse.name,
+            email = authResponse.email,
+            phone = authResponse.phone,
+            role = authResponse.role
+        )
+        _authState.value = AuthState.LoggedIn(
+            userId = authResponse.userId,
+            name = authResponse.name,
+            email = authResponse.email,
+            phone = authResponse.phone,
+            role = authResponse.role
+        )
     }
 
     fun isLoggedIn(): Boolean {
-        return tokenManager?.isLoggedIn() ?: false
+        return authState.value is AuthState.LoggedIn
     }
 
     fun logout() {
         tokenManager?.logout()
+        _authState.value = AuthState.LoggedOut
+    }
+
+    fun currentUser(): AuthState.LoggedIn? {
+        return authState.value as? AuthState.LoggedIn
     }
 
     private fun createTrustAllCerts(): Array<TrustManager> {

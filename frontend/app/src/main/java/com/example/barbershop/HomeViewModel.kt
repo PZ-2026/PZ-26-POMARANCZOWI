@@ -22,54 +22,32 @@ class HomeViewModel : ViewModel() {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        fetchUserInfo()
-    }
-
-    fun fetchUserInfo() {
-        if (!NetworkClient.isLoggedIn()) {
-            _uiState.update { it.copy(userName = null) }
-            return
-        }
-
+        // Observe global auth state instead of one-time fetch
         viewModelScope.launch {
-            try {
-                val response = NetworkClient.authApi.getMe()
-                if (response.isSuccessful && response.body() != null) {
-                    _uiState.update { it.copy(userName = response.body()?.name) }
-                } else if (response.code() == 401 || response.code() == 403) {
-                    logoutUser()
-                } else {
-                    _uiState.update { it.copy(errorMessage = "Error: ${response.code()}") }
+            NetworkClient.authState.collect { authState ->
+                when (authState) {
+                    is NetworkClient.AuthState.LoggedIn -> {
+                        _uiState.update { it.copy(
+                            userName = authState.name,
+                            isLoggedOut = false
+                        ) }
+                    }
+                    is NetworkClient.AuthState.LoggedOut -> {
+                        _uiState.update { it.copy(
+                            userName = null,
+                            isLoggedOut = true
+                        ) }
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(showNetworkErrorDialog = true) }
             }
         }
-    }
-
-    private fun logoutUser() {
-        NetworkClient.logout()
-        _uiState.update { it.copy(userName = null, isLoggedOut = true) }
     }
 
     fun onProfileClick(navigateToLogin: () -> Unit, navigateToProfile: () -> Unit) {
         if (!NetworkClient.isLoggedIn()) {
             navigateToLogin()
-            return
-        }
-
-        viewModelScope.launch {
-            try {
-                val response = NetworkClient.authApi.getMe()
-                if (response.isSuccessful) {
-                    navigateToProfile()
-                } else {
-                    logoutUser()
-                    navigateToLogin()
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(showNetworkErrorDialog = true) }
-            }
+        } else {
+            navigateToProfile()
         }
     }
 

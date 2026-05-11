@@ -166,8 +166,15 @@ fun LoginScreen(
             }
 
             if (uiState.isLoggedIn) {
+                val data = uiState.authResponse
                 Text(
-                    text = "Login successful!",
+                    text = "Login successful! \n" +
+                            "Login data: \n" +
+                            "Name: ${data?.name}\n" +
+                            "Email: ${data?.email}\n" +
+                            "Role: ${data?.role}\n" +
+                            "Phone: ${data?.phone}\n" +
+                            "UserId: ${data?.userId}",
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,

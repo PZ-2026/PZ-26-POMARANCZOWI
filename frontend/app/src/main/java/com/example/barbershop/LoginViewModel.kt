@@ -2,6 +2,7 @@ package com.example.barbershop
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.barbershop.network.AuthResponse
 import com.example.barbershop.network.LoginRequest
 import com.example.barbershop.network.NetworkClient
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,8 @@ data class LoginUiState(
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val authResponse: AuthResponse? = null
 )
 
 class LoginViewModel : ViewModel() {
@@ -38,7 +40,7 @@ class LoginViewModel : ViewModel() {
 
     fun login() {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, authResponse = null) }
 
             try {
                 val response = NetworkClient.authApi.login(
@@ -50,9 +52,14 @@ class LoginViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
+                    println("Login successful: $authResponse")
                     NetworkClient.saveToken(authResponse.token)
                     _uiState.update {
-                        it.copy(isLoading = false, isLoggedIn = true)
+                        it.copy(
+                            isLoading = false,
+                            isLoggedIn = true,
+                            authResponse = authResponse
+                        )
                     }
                 } else {
                     _uiState.update {

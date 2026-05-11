@@ -18,7 +18,9 @@ data class LoginUiState(
     val password: String = "",
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isLoggedIn: Boolean = false,
+    val authResponse: AuthResponse? = null
 )
 
 class LoginViewModel : ViewModel() {
@@ -37,9 +39,9 @@ class LoginViewModel : ViewModel() {
         _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun login(navigateToHome: () -> Unit) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    fun login() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, authResponse = null) }
 
             try {
                 val response = withContext(Dispatchers.IO) {

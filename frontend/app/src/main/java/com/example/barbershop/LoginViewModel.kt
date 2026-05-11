@@ -39,9 +39,9 @@ class LoginViewModel : ViewModel() {
         _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun login() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, authResponse = null) }
+    fun login(navigateToHome: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
                 val response = withContext(Dispatchers.IO) {
@@ -55,7 +55,7 @@ class LoginViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
-                    
+
                     // Centralized state update
                     NetworkClient.saveAuthResponse(authResponse)
 

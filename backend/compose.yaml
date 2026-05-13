@@ -6,12 +6,14 @@ services:
       - 'POSTGRES_PASSWORD=secret'
       - 'POSTGRES_USER=myuser'
     ports:
-      - '5432'
+      - "5432:5432"
     networks:
       - app-network
 
   backend:
-    build: .
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "8443:8443"
     depends_on:

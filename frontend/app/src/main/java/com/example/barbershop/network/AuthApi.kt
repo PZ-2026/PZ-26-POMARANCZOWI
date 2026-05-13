@@ -2,6 +2,7 @@ package com.example.barbershop.network
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 
 interface AuthApi {
@@ -10,6 +11,9 @@ interface AuthApi {
 
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
+
+    @GET("api/auth/me")
+    suspend fun getMe(): Response<AuthResponse>
 }
 
 data class LoginRequest(val email: String, val password: String)

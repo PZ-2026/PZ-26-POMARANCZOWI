@@ -2,12 +2,48 @@ package pl.pomaranczowi.backend.repository;
 
 import pl.pomaranczowi.backend.entity.Appointment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+
     List<Appointment> findByClientUserId(Long userId);
-    List<Appointment> findByBarberBarberIdAndStartTimeBetween(Long barberId, java.time.LocalDateTime start, java.time.LocalDateTime end);
-    List<Appointment> findByBarberBarberIdAndStartTimeAfter(Long barberId, java.time.LocalDateTime after);
+
+    List<Appointment> findByBarberBarberIdAndStartTimeBetween(
+            Long barberId,
+            LocalDateTime start,
+            LocalDateTime end
+    );
+
+    List<Appointment> findByBarberBarberIdAndStartTimeAfter(
+            Long barberId,
+            LocalDateTime after
+    );
+
     List<Appointment> findByBarberUserUserId(Long userId);
+
+
+
+    @Query("""
+        SELECT a
+        FROM Appointment a
+        JOIN FETCH a.client
+        JOIN FETCH a.barber b
+        JOIN FETCH b.user
+        ORDER BY a.startTime
+    """)
+    List<Appointment> getAppointmentsWithDetails();
+
+
+
+    @Query("""
+        SELECT b.user.name, COUNT(a)
+        FROM Appointment a
+        JOIN a.barber b
+        GROUP BY b.user.name
+        ORDER BY COUNT(a) DESC
+    """)
+    List<Object[]> getBarberStatistics();
 }

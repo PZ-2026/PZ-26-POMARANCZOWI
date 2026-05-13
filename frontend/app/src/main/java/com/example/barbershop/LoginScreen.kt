@@ -52,11 +52,14 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(uiState.isLoggedIn, uiState.userRole) {
-        if (uiState.isLoggedIn && uiState.userRole != null) {
-            onLoginSuccess(uiState.userRole!!)
+    // POPRAWKA: Zmiana nasłuchiwania z userRole na authResponse
+    LaunchedEffect(uiState.isLoggedIn, uiState.authResponse) {
+        if (uiState.isLoggedIn && uiState.authResponse != null) {
+            // Pobieramy rolę bezpośrednio z obiektu authResponse
+            onLoginSuccess(uiState.authResponse!!.role.toString())
         }
     }
+
     Scaffold(
         topBar = {
             TopAppBar(

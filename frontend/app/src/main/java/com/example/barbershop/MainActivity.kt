@@ -43,8 +43,19 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             viewModel = homeViewModel,
                             onNavigateToSettings = { navController.navigate("settings") },
-                            onNavigateToLogin = { navController.navigate("login") },
+                            onNavigateToLogin = { navController.navigate("profile") },
                             onNavigateToBooking = { navController.navigate("booking") }
+                        )
+                    }
+                    composable("profile") {
+                        ProfileScreen(
+                            onLogout = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            },
+                            onNavigateBack = { navController.popBackStack() },
+                            userData = homeViewModel.uiState.collectAsState().value
                         )
                     }
                     composable("settings") {
@@ -59,6 +70,11 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToRegister = { navController.navigate("register") },
                             onForgotPassword = { navController.navigate("forgot") },
+                            onLoginSuccess = {
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("register") {

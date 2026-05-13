@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,11 +46,17 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
-    onForgotPassword: () -> Unit
+    onForgotPassword: () -> Unit,
+    onLoginSuccess: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+    LaunchedEffect(uiState.isLoggedIn, uiState.userRole) {
+        if (uiState.isLoggedIn && uiState.userRole != null) {
+            onLoginSuccess(uiState.userRole!!)
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(

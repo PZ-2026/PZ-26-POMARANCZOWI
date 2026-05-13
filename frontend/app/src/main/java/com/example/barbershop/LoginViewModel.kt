@@ -17,7 +17,8 @@ data class LoginUiState(
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val userRole: String? = null
 )
 
 class LoginViewModel : ViewModel() {
@@ -52,7 +53,11 @@ class LoginViewModel : ViewModel() {
                     val authResponse = response.body()!!
                     NetworkClient.saveToken(authResponse.token)
                     _uiState.update {
-                        it.copy(isLoading = false, isLoggedIn = true)
+                        it.copy(
+                            isLoading = false,
+                            isLoggedIn = true,
+                            userRole = authResponse.role
+                        )
                     }
                 } else {
                     _uiState.update {

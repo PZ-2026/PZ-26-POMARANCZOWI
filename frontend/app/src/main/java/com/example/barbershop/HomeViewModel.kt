@@ -1,22 +1,71 @@
 package com.example.barbershop
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.barbershop.network.NetworkClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-// mock użytkownika
 data class HomeUiState(
-    val welcomeMessage: String = "Witaj w BarberShop!",
-    val userName: String = "Jan Kowalski",
-    val userEmail: String = "jan.kowalski@test.com",
-    val userPhone: String = "+48 123 456 789",
-    val userRole: String = "CLIENT"
+    val welcomeMessage: String = "Welcome to Barbershop!",
+    val userName: String? = null,
+    val errorMessage: String? = null,
+    val showNetworkErrorDialog: Boolean = false,
+    val isLoggedOut: Boolean = false
 )
 
 class HomeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // dodac fetchuserdata
+    init {
+        // Observe global auth state instead of one-time fetch
+        viewModelScope.launch {
+            NetworkClient.authState.collect { authState ->
+                when (authState) {
+                    is NetworkClient.AuthState.LoggedIn -> {
+                        _uiState.update { it.copy(
+                            userName = authState.name,
+                            isLoggedOut = false
+                        ) }
+                    }
+                    is NetworkClient.AuthState.LoggedOut -> {
+                        _uiState.update { it.copy(
+                            userName = null,
+                            isLoggedOut = true
+                        ) }
+                    }
+                }
+            }
+        }
+    }
+
+    fun onProfileClick(navigateToLogin: () -> Unit, navigateToProfile: () -> Unit, navigateToEmployeePanel : () -> Unit, navigateToAdminPanel : () -> Unit) {
+        if (!NetworkClient.isLoggedIn()) {
+            navigateToLogin()
+        } else {
+            viewModelScope.launch {
+                NetworkClient.authState.collect {
+                    // If role is ADMIN, navigate to AdminProfile
+                    if (it is NetworkClient.AuthState.LoggedIn && it.role == "ADMIN") {
+                        navigateToAdminPanel()
+                    }
+                    // If role is EMPLOYEE, navigate to BarberProfile
+                    else if (it is NetworkClient.AuthState.LoggedIn && it.role == "EMPLOYEE") {
+                        navigateToEmployeePanel()
+                    }
+                    // else navigate to UserProfile
+                    else {
+                        navigateToProfile()
+                    }
+                }
+            }
+        }
+    }
+    fun dismissError() {
+        _uiState.update { it.copy(errorMessage = null, showNetworkErrorDialog = false) }
+    }
 }

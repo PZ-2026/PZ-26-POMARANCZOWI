@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,18 +46,10 @@ fun LoginScreen(
     onNavigateBack: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onForgotPassword: () -> Unit,
-    onLoginSuccess: (String) -> Unit
+    onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-
-    // POPRAWKA: Zmiana nasłuchiwania z userRole na authResponse
-    LaunchedEffect(uiState.isLoggedIn, uiState.authResponse) {
-        if (uiState.isLoggedIn && uiState.authResponse != null) {
-            // Pobieramy rolę bezpośrednio z obiektu authResponse
-            onLoginSuccess(uiState.authResponse!!.role.toString())
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -155,7 +146,7 @@ fun LoginScreen(
 
             // Login Button
             Button(
-                onClick = { viewModel.login() },
+                onClick = { viewModel.login(onNavigateToHome) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
@@ -174,25 +165,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
-
-            if (uiState.isLoggedIn) {
-                val data = uiState.authResponse
-                Text(
-                    text = "Login successful! \n" +
-                            "Login data: \n" +
-                            "Name: ${data?.name}\n" +
-                            "Email: ${data?.email}\n" +
-                            "Role: ${data?.role}\n" +
-                            "Phone: ${data?.phone}\n" +
-                            "UserId: ${data?.userId}",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
+            
             Spacer(modifier = Modifier.height(8.dp))
 
             // Register Link

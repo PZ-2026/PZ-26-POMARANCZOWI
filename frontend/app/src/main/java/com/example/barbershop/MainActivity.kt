@@ -38,8 +38,11 @@ class MainActivity : ComponentActivity() {
             BarbershopTheme(darkTheme = settingsUiState.isDarkTheme) {
                 NavHost(
                     navController = navController,
-                    startDestination = "home"
+                    startDestination = "admin_panel"
                 ) {
+                    composable("manage_services") {
+                        ManageServicesScreen()
+                    }
                     composable("home") {
                         HomeScreen(
                             viewModel = homeViewModel,

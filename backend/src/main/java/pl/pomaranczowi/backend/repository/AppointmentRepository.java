@@ -1,6 +1,7 @@
 package pl.pomaranczowi.backend.repository;
 
 import pl.pomaranczowi.backend.entity.Appointment;
+import pl.pomaranczowi.backend.entity.AppointmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -10,6 +11,12 @@ import java.util.List;
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
     List<Appointment> findByClientUserId(Long userId);
+
+    List<Appointment> findByClientUserIdAndStartTimeAfterAndStatus(
+            Long userId,
+            LocalDateTime after,
+            AppointmentStatus status
+    );
 
     List<Appointment> findByBarberBarberIdAndStartTimeBetween(
             Long barberId,

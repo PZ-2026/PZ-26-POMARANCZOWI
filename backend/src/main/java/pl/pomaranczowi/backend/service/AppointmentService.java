@@ -37,6 +37,15 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    public List<AppointmentResponse> getUpcomingAppointments(Long userId) {
+        List<Appointment> appointments = appointmentRepository
+                .findByClientUserIdAndStartTimeAfterAndStatus(
+                        userId, LocalDateTime.now(), AppointmentStatus.BOOKED);
+        return appointments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public List<AppointmentResponse> getBusyTimes(Long barberId, LocalDateTime date) {
         LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = date.toLocalDate().atTime(23, 59, 59);

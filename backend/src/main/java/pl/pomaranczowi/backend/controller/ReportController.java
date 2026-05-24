@@ -7,7 +7,9 @@ import com.example.reports.service.PdfDocumentService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import pl.pomaranczowi.backend.service.RevenueReportService;
@@ -26,11 +28,14 @@ public class ReportController {
     }
 
     @GetMapping("/reports/revenue")
-    public ResponseEntity<byte[]> generateRevenueReport() {
+    public ResponseEntity<byte[]> generateRevenueReport(
+            @RequestParam(defaultValue = "month")
+            String period
+    ) {
 
         RevenueReportDto dto =
                 revenueReportService
-                        .generateMonthlyRevenueReport();
+                        .generateRevenueReport(period);
 
         RevenuePdfGenerator generator =
                 new RevenuePdfGenerator(

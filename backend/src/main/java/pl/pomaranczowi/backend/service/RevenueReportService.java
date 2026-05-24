@@ -1,12 +1,16 @@
 package pl.pomaranczowi.backend.service;
 
 import com.example.reports.dto.RevenueReportDto;
+
 import org.springframework.stereotype.Service;
+
 import pl.pomaranczowi.backend.entity.AppointmentService;
 import pl.pomaranczowi.backend.repository.AppointmentServiceRepository;
 
 import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
+
 import java.util.List;
 
 @Service
@@ -23,15 +27,33 @@ public class RevenueReportService {
                 appointmentServiceRepository;
     }
 
-    public RevenueReportDto generateMonthlyRevenueReport() {
+    public RevenueReportDto generateRevenueReport(
+            String period
+    ) {
 
-        LocalDateTime monthAgo =
-                LocalDateTime.now().minusMonths(1);
+        LocalDateTime dateFrom;
+
+        String periodLabel;
+
+        if (period.equalsIgnoreCase("week")) {
+
+            dateFrom =
+                    LocalDateTime.now().minusWeeks(1);
+
+            periodLabel = "Ostatni tydzień";
+
+        } else {
+
+            dateFrom =
+                    LocalDateTime.now().minusMonths(1);
+
+            periodLabel = "Ostatni miesiąc";
+        }
 
         List<AppointmentService> appointmentServices =
                 appointmentServiceRepository
                         .findByAppointmentStartTimeAfter(
-                                monthAgo
+                                dateFrom
                         );
 
         BigDecimal totalRevenue =
@@ -51,7 +73,7 @@ public class RevenueReportService {
         RevenueReportDto dto =
                 new RevenueReportDto();
 
-        dto.setPeriod("Ostatni miesiąc");
+        dto.setPeriod(periodLabel);
 
         dto.setAppointmentsCount(
                 appointmentServices.size()

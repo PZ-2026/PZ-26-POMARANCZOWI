@@ -20,7 +20,12 @@ public class ServiceController {
         return ResponseEntity.ok(serviceService.getAllServices());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/popular")
+    public ResponseEntity<List<ServiceDto>> getPopularServices(@RequestParam(defaultValue = "3") int limit) {
+        return ResponseEntity.ok(serviceService.getPopularServices(limit));
+    }
+
+    @GetMapping("/{id:[0-9]+}")
     public ResponseEntity<ServiceDto> getServiceById(@PathVariable Long id) {
         return ResponseEntity.ok(serviceService.getServiceById(id));
     }

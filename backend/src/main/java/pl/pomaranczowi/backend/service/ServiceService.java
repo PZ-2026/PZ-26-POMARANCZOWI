@@ -1,6 +1,7 @@
 package pl.pomaranczowi.backend.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import pl.pomaranczowi.backend.dto.ServiceDto;
 import pl.pomaranczowi.backend.repository.ServiceRepository;
@@ -25,6 +26,14 @@ public class ServiceService {
         pl.pomaranczowi.backend.entity.Service service = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
         return mapToDto(service);
+    }
+
+    public List<ServiceDto> getPopularServices(int limit) {
+        List<pl.pomaranczowi.backend.entity.Service> services =
+                serviceRepository.findTopPopularServices(PageRequest.of(0, limit));
+        return services.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     private ServiceDto mapToDto(pl.pomaranczowi.backend.entity.Service service) {

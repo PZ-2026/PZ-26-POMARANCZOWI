@@ -1,5 +1,6 @@
 package com.example.barbershop
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -188,13 +191,14 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Image Placeholder TODO: Replace with actual image
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.hero_image),
+                contentDescription = "Zdjęcie salonu",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Gray)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -202,23 +206,15 @@ fun HomeScreen(
             // Popular Section Header
             SectionHeader(title = "Popular")
 
-            // Indented Popular Services
+            // Popular Services from backend
             Column(modifier = Modifier.padding(start = 16.dp)) {
-                ServiceItem(
-                    title = "Standard Haircut",
-                    price = "$140",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Budget Haircut",
-                    price = "$120",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
+                uiState.popularServices.forEach { service ->
+                    ServiceItem(
+                        title = service.name,
+                        price = "$${service.price.toInt()}",
+                        onBookClick = { onNavigateToBooking() }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

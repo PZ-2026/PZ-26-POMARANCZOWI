@@ -1,7 +1,7 @@
 package pl.pomaranczowi.backend.controller;
 
-import com.example.reports.dto.UserActivityReportDto;
-import com.example.reports.generator.UserActivityPdfGenerator;
+import com.example.reports.dto.RevenueReportDto;
+import com.example.reports.generator.RevenuePdfGenerator;
 import com.example.reports.service.PdfDocumentService;
 
 import org.springframework.http.HttpHeaders;
@@ -10,29 +10,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import pl.pomaranczowi.backend.service.RevenueReportService;
 
 @RestController
 public class ReportController {
 
-    @GetMapping("/reports/test")
-    public ResponseEntity<byte[]> generatePdf() {
+    private final RevenueReportService
+            revenueReportService;
 
-        UserActivityReportDto dto =
-                new UserActivityReportDto();
+    public ReportController(
+            RevenueReportService revenueReportService
+    ) {
+        this.revenueReportService =
+                revenueReportService;
+    }
 
-        dto.setUsername("Jan");
+    @GetMapping("/reports/revenue")
+    public ResponseEntity<byte[]> generateRevenueReport() {
 
-        dto.setActivities(
-                List.of(
-                        "Logowanie",
-                        "Dodanie wizyty",
-                        "Wylogowanie"
-                )
-        );
+        RevenueReportDto dto =
+                revenueReportService
+                        .generateMonthlyRevenueReport();
 
-        UserActivityPdfGenerator generator =
-                new UserActivityPdfGenerator(
+        RevenuePdfGenerator generator =
+                new RevenuePdfGenerator(
                         new PdfDocumentService()
                 );
 
@@ -41,7 +42,7 @@ public class ReportController {
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=report.pdf"
+                        "attachment; filename=revenue-report.pdf"
                 )
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);

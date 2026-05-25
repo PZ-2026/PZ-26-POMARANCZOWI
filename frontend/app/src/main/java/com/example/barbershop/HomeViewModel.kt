@@ -1,5 +1,6 @@
 package com.example.barbershop
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.barbershop.network.NetworkClient
@@ -15,6 +16,7 @@ data class HomeUiState(
     val welcomeMessage: String = "Welcome to Barbershop!",
     val userName: String? = null,
     val popularServices: List<ServiceDto> = emptyList(),
+    val allServices: List<ServiceDto> = emptyList(),
     val errorMessage: String? = null,
     val showNetworkErrorDialog: Boolean = false,
     val isLoggedOut: Boolean = false
@@ -44,6 +46,7 @@ class HomeViewModel : ViewModel() {
             }
         }
         loadPopularServices()
+        loadAllServices()
     }
 
     private fun loadPopularServices() {
@@ -56,6 +59,20 @@ class HomeViewModel : ViewModel() {
                 }
             } catch (_: Exception) {
                 // Silently ignore - popular section will just be empty
+            }
+        }
+    }
+
+    private fun loadAllServices() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.serviceApi.getServices()
+                if (response.isSuccessful) {
+                    val services = response.body() ?: emptyList()
+                    _uiState.update { it.copy(allServices = services) }
+                }
+            } catch (e: Exception) {
+                Log.e("HomeViewModel", "Error loading all services", e)
             }
         }
     }

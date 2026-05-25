@@ -223,42 +223,15 @@ fun HomeScreen(
             SectionHeader(title = "Hair services")
 
             // Indented Hair Services
+            // Services from backend
             Column(modifier = Modifier.padding(start = 16.dp)) {
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
-                ServiceItem(
-                    title = "Expensive Haircut",
-                    price = "$500",
-                    onBookClick = { onNavigateToBooking() }
-                )
+                uiState.allServices.forEach { service ->
+                    ServiceItem(
+                        title = service.name,
+                        price = "$${service.price.toInt()}",
+                        onBookClick = { onNavigateToBooking() }
+                    )
+                }
             }
         }
     }

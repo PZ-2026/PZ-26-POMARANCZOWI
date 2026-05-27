@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -17,4 +18,13 @@ interface ServiceApi {
 
     @GET("api/services/{id}")
     suspend fun getServiceById(@Path("id") id: Long): Response<ServiceDto>
+
+    @POST("api/services")
+    suspend fun createService(@Body service: ServiceDto): Response<ServiceDto>
+
+    @PUT("api/services/{id}")
+    suspend fun updateService(@Path("id") id: Long, @Body service: ServiceDto): Response<ServiceDto>
+
+    @DELETE("api/services/{id}")
+    suspend fun deleteService(@Path("id") id: Long): Response<Unit>
 }

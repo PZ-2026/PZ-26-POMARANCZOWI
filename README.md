@@ -64,6 +64,8 @@ return new AuthResponse(
 `/api/availability/barber/{barberId}/date/{date yyyy-MM-dd}/available-times`
 `/api/availability/barber/1/date/2026-06-22/available-times` -> Zwraca dostępne godziny dla barbera w danym dniu. Bierze pod uwagę jego godziny pracy, i już zarezerwowane wizyty.
 
+Takes additional parameter serviceDuration, defaultValue = "PT30M", to return time slots that that won't overlap with existing reservations.
+
 Zwraca odpowiedź json z listą dostępnych godzin:
 ```java
 return [

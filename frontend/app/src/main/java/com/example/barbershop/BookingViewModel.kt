@@ -43,17 +43,19 @@ class BookingViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(BookingUiState())
     val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
 
-    init {
-        loadData()
+    fun initializeBooking(serviceId: Long) {
+        // Reset state for new booking
+        _uiState.update { 
+            BookingUiState(isLoading = true) 
+        }
+        loadData(serviceId)
     }
 
-    private fun loadData() {
+    private fun loadData(serviceId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isLoading = true) }
-
             try {
                 val barbersResponse = NetworkClient.barberApi.getBarbers()
-                val serviceResponse = NetworkClient.serviceApi.getServiceById(1L)
+                val serviceResponse = NetworkClient.serviceApi.getServiceById(serviceId)
 
                 if (barbersResponse.isSuccessful && serviceResponse.isSuccessful) {
                     val barbers = barbersResponse.body()?.map { it.toBarber() } ?: emptyList()
@@ -173,25 +175,17 @@ class BookingViewModel : ViewModel() {
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e("BookingViewModel", "Failure: $errorBody")
-                    
                     val errorMessage = try {
                         val json = JSONObject(errorBody)
-                        when {
-                            json.has("message") -> json.getString("message")
-                            json.has("error") -> json.getString("error")
-                            else -> "Booking failed: ${response.code()}"
-                        }
+                        json.optString("message", "Booking failed: ${response.code()}")
                     } catch (e: Exception) {
-                        "Server error (${response.code()}). Please try another slot."
+                        "Booking failed: ${response.code()}"
                     }
-                    
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = errorMessage)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("BookingViewModel", "Network Error", e)
                 _uiState.update {
                     it.copy(isLoading = false, errorMessage = "Network failure. Check connection.")
                 }

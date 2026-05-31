@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.ui.theme.BarbershopTheme
 import com.example.barbershop.booking.BookingScreen
@@ -52,7 +55,9 @@ class MainActivity : ComponentActivity() {
                             viewModel = homeViewModel,
                             onNavigateToSettings = { navController.navigate("settings") },
                             onNavigateToLogin = { navController.navigate("login") },
-                            onNavigateToBooking = { navController.navigate("booking") },
+                            onNavigateToBooking = { serviceId -> 
+                                navController.navigate("booking/$serviceId") 
+                            },
                             onNavigateToProfile = { navController.navigate("profile") },
                             onNavigateToEmployeePanel = { navController.navigate("employee_panel") },
                             onNavigateToAdminPanel = { navController.navigate("admin_panel") }
@@ -61,7 +66,8 @@ class MainActivity : ComponentActivity() {
                     composable("settings") {
                         SettingsScreen(
                             viewModel = settingsViewModel,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateToHome = { navController.navigate("home") },
+                            onNavigateToProfile = { navController.navigate("profile") }
                         )
                     }
                     composable("login") {
@@ -100,7 +106,14 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    composable("booking") {
+                    composable(
+                        route = "booking/{serviceId}",
+                        arguments = listOf(navArgument("serviceId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val serviceId = backStackEntry.arguments?.getLong("serviceId") ?: 1L
+                        LaunchedEffect(serviceId) {
+                            bookingViewModel.initializeBooking(serviceId)
+                        }
                         BookingScreen(
                             viewModel = bookingViewModel,
                             onNavigateBack = { navController.popBackStack() },
@@ -151,7 +164,7 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
-                            onNavigateToBooking = { navController.navigate("booking") }
+                            onNavigateToSettings = { navController.navigate("settings") }
                         )
                     }
                 }

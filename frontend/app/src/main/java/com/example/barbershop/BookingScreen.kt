@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -146,7 +147,7 @@ fun BookingScreen(
                 }
             }
 
-            // Service Information Section
+            // Service Information Section (Non-interactive)
             uiState.selectedService?.let { service ->
                 Column(
                     modifier = Modifier
@@ -154,38 +155,50 @@ fun BookingScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "BOOKING SERVICE",
+                        text = "SERVICE DETAILS",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = service.name,
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.ExtraBold
                             )
+                            if (service.description.isNotEmpty()) {
+                                Text(
+                                    text = service.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${service.durationMinutes} minutes duration",
+                                text = "Duration: ${service.durationMinutes} min",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
                         Text(
                             text = service.price,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    HorizontalDivider(modifier = Modifier.padding(top = 16.dp), thickness = 0.5.dp)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                 }
             }
 
@@ -231,23 +244,21 @@ fun BookingScreen(
             SectionTitle("Select Time")
             
             if (uiState.selectedBarber == null || uiState.selectedDate == null) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "Pick a barber and date first",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            } else if (uiState.availableTimeSlots.isEmpty() && !uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No availability for this day",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                Text(
+                    text = "Please select a barber and a date to see available times",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            } else if (uiState.availableTimeSlots.isEmpty()) {
+                Text(
+                    text = "No available slots for the selected date",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             } else {
-                // Fixed Grid layout using Column and Row to ensure all items are rendered
+                // Manual Grid to ensure ALL slots are printed and visible within the parent scroll
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -285,6 +296,7 @@ fun BookingScreen(
             val selectableDates = remember {
                 object : SelectableDates {
                     override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        // Return true if date is today or in the future
                         val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
                         return utcTimeMillis >= today
                     }
@@ -305,7 +317,7 @@ fun BookingScreen(
                         }
                         showDatePicker = false
                     }) {
-                        Text("Confirm")
+                        Text("OK")
                     }
                 },
                 dismissButton = {
@@ -356,7 +368,7 @@ fun BookingSuccessScreen(
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(RoundedCornerShape(50.dp))
+                    .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {

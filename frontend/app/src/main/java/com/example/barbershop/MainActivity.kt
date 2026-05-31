@@ -14,6 +14,7 @@ import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.ui.theme.BarbershopTheme
 import com.example.barbershop.booking.BookingScreen
 import com.example.barbershop.booking.BookingViewModel
+import com.example.barbershop.booking.BookingSuccessScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -102,7 +103,22 @@ class MainActivity : ComponentActivity() {
                     composable("booking") {
                         BookingScreen(
                             viewModel = bookingViewModel,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateBack = { navController.popBackStack() },
+                            onBookingSuccess = {
+                                navController.navigate("booking_success") {
+                                    popUpTo("home") { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+                    composable("booking_success") {
+                        BookingSuccessScreen(
+                            viewModel = bookingViewModel,
+                            onNavigateHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("admin_panel") {

@@ -1,6 +1,7 @@
 package com.example.barbershop.booking
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,18 +15,26 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -36,14 +45,33 @@ import java.util.Locale
 @Composable
 fun BookingScreen(
     viewModel: BookingViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onBookingSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showDatePicker by remember { mutableStateOf(false) }
 
+    LaunchedEffect(uiState.isBookingSuccessful) {
+        if (uiState.isBookingSuccessful) {
+            onBookingSuccess()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                actionLabel = "Dismiss",
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Book an Appointment", fontWeight = FontWeight.Bold) },
@@ -92,17 +120,33 @@ fun BookingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = uiState.errorMessage!!,
+                    Row(
                         modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = uiState.errorMessage!!,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(onClick = { viewModel.clearError() }) {
+                            Icon(Icons.Default.Face, contentDescription = "Clear", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 }
             }
 
-            // Service Information Section (Non-interactive)
+            // Service Information Section
             uiState.selectedService?.let { service ->
                 Column(
                     modifier = Modifier
@@ -110,50 +154,38 @@ fun BookingScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "SERVICE DETAILS",
+                        text = "BOOKING SERVICE",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = service.name,
                                 style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold
+                                fontWeight = FontWeight.Bold
                             )
-                            if (service.description.isNotEmpty()) {
-                                Text(
-                                    text = service.description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Duration: ${service.durationMinutes} min",
+                                text = "${service.durationMinutes} minutes duration",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
                         Text(
                             text = service.price,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    HorizontalDivider(
-                        modifier = Modifier.padding(top = 16.dp),
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
+                    HorizontalDivider(modifier = Modifier.padding(top = 16.dp), thickness = 0.5.dp)
                 }
             }
 
@@ -174,7 +206,7 @@ fun BookingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             SectionTitle("Select Date")
-            val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
+            val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.ENGLISH)
             OutlinedTextField(
                 value = uiState.selectedDate?.format(dateFormatter) ?: "",
                 onValueChange = {},
@@ -190,7 +222,7 @@ fun BookingScreen(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
                     disabledBorderColor = MaterialTheme.colorScheme.outline,
                     disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -199,40 +231,50 @@ fun BookingScreen(
             SectionTitle("Select Time")
             
             if (uiState.selectedBarber == null || uiState.selectedDate == null) {
-                Text(
-                    text = "Please select a barber and a date first",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            } else if (uiState.availableTimeSlots.isEmpty()) {
-                Text(
-                    text = "No available slots for the selected date",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Pick a barber and date first",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            } else if (uiState.availableTimeSlots.isEmpty() && !uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "No availability for this day",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             } else {
-                // Time Grid
-                Box(modifier = Modifier
-                    .heightIn(min = 50.dp, max = 300.dp)
-                    .padding(horizontal = 16.dp)) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        userScrollEnabled = false,
-                        modifier = Modifier.heightIn(max = 2000.dp) // Avoid infinite height in nested scrolls
-                    ) {
-                        items(uiState.availableTimeSlots) { time ->
-                            val isToday = uiState.selectedDate == LocalDate.now()
-                            val isPastTime = isToday && time.isBefore(LocalTime.now())
-                            TimeSlotItem(
-                                time = time,
-                                isSelected = uiState.selectedTime == time,
-                                enabled = !isPastTime,
-                                onClick = { viewModel.onTimeSelected(time) }
-                            )
+                // Fixed Grid layout using Column and Row to ensure all items are rendered
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    uiState.availableTimeSlots.chunked(4).forEach { rowSlots ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowSlots.forEach { time ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    val isToday = uiState.selectedDate == LocalDate.now()
+                                    val isPastTime = isToday && time.isBefore(LocalTime.now())
+                                    TimeSlotItem(
+                                        time = time,
+                                        isSelected = uiState.selectedTime == time,
+                                        enabled = !isPastTime,
+                                        onClick = { viewModel.onTimeSelected(time) }
+                                    )
+                                }
+                            }
+                            // Fill empty slots in the last row to maintain grid alignment
+                            repeat(4 - rowSlots.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -243,7 +285,6 @@ fun BookingScreen(
             val selectableDates = remember {
                 object : SelectableDates {
                     override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                        // Return true if date is today or in the future
                         val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
                         return utcTimeMillis >= today
                     }
@@ -264,7 +305,7 @@ fun BookingScreen(
                         }
                         showDatePicker = false
                     }) {
-                        Text("OK")
+                        Text("Confirm")
                     }
                 },
                 dismissButton = {
@@ -273,6 +314,190 @@ fun BookingScreen(
             ) {
                 DatePicker(state = datePickerState)
             }
+        }
+    }
+}
+
+@Composable
+fun BookingSuccessScreen(
+    viewModel: BookingViewModel,
+    onNavigateHome: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val response = uiState.bookingResponse
+
+    Scaffold(
+        bottomBar = {
+            Button(
+                onClick = {
+                    viewModel.resetBookingSuccess()
+                    onNavigateHome()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Back to Home", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(60.dp))
+            
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(50.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "Booking Confirmed!",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Thank you for choosing us!",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            
+            if (response != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = "APPOINTMENT SUMMARY",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    val dateTime = try {
+                        LocalDateTime.parse(response.startTime)
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    SummaryItem(
+                        icon = Icons.Default.Face,
+                        label = "Service",
+                        value = response.services.joinToString(", ") { it.name }.ifEmpty { uiState.selectedService?.name ?: "" }
+                    )
+                    
+                    SummaryItem(
+                        icon = Icons.Default.Person,
+                        label = "Barber",
+                        value = response.barber.name
+                    )
+
+                    if (dateTime != null) {
+                        val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.ENGLISH)
+                        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+                        
+                        SummaryItem(
+                            icon = Icons.Default.CalendarMonth,
+                            label = "Date",
+                            value = dateTime.format(dateFormatter)
+                        )
+                        
+                        SummaryItem(
+                            icon = Icons.Default.Schedule,
+                            label = "Time",
+                            value = dateTime.format(timeFormatter)
+                        )
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Total Price",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = uiState.selectedService?.price ?: "$0",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryItem(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

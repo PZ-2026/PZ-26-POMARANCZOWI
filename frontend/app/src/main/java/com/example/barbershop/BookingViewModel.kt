@@ -3,6 +3,7 @@ package com.example.barbershop.booking
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.barbershop.network.AppointmentRequest
+import com.example.barbershop.network.AppointmentResponse
 import com.example.barbershop.network.BarberDto
 import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.network.ServiceDto
@@ -17,6 +18,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import org.json.JSONObject
 
 data class Barber(val id: Long, val name: String, val specialization: String)
 data class Service(val id: Long, val name: String, val description: String, val price: String, val durationMinutes: Int)
@@ -33,6 +35,7 @@ data class BookingUiState(
 
     val isLoading: Boolean = false,
     val isBookingSuccessful: Boolean = false,
+    val bookingResponse: AppointmentResponse? = null,
     val errorMessage: String? = null
 )
 
@@ -48,13 +51,8 @@ class BookingViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
 
-            Log.d("BookingViewModel", "Starting data load...")
-
             try {
-                Log.d("BookingViewModel", "Fetching barbers...")
                 val barbersResponse = NetworkClient.barberApi.getBarbers()
-                
-                Log.d("BookingViewModel", "Fetching service 1...")
                 val serviceResponse = NetworkClient.serviceApi.getServiceById(1L)
 
                 if (barbersResponse.isSuccessful && serviceResponse.isSuccessful) {
@@ -69,16 +67,13 @@ class BookingViewModel : ViewModel() {
                         )
                     }
                 } else {
-                    Log.e("BookingViewModel", "API error - barbers: ${barbersResponse.code()}, service: ${serviceResponse.code()}")
-                    val errorMessage = "Failed to load data"
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = errorMessage)
+                        it.copy(isLoading = false, errorMessage = "Failed to load shop data")
                     }
                 }
             } catch (e: Exception) {
-                Log.e("BookingViewModel", "Connection error: ${e.message}", e)
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Connection error: ${e.message}")
+                    it.copy(isLoading = false, errorMessage = "Connection error: Check your internet")
                 }
             }
         }
@@ -94,12 +89,8 @@ class BookingViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val times = response.body()?.map { LocalTime.parse(it) } ?: emptyList()
                     _uiState.update { it.copy(availableTimeSlots = times) }
-                } else {
-                    Log.e("BookingViewModel", "Failed to load times: ${response.code()}")
                 }
-            } catch (e: Exception) {
-                Log.e("BookingViewModel", "Error loading times", e)
-            }
+            } catch (_: Exception) { }
         }
     }
 
@@ -118,17 +109,30 @@ class BookingViewModel : ViewModel() {
     )
 
     fun onBarberSelected(barber: Barber) {
-        _uiState.update { it.copy(selectedBarber = barber, selectedTime = null, availableTimeSlots = emptyList()) }
+        _uiState.update { it.copy(
+            selectedBarber = barber, 
+            selectedTime = null, 
+            availableTimeSlots = emptyList(),
+            errorMessage = null 
+        ) }
         loadAvailableTimes()
     }
 
     fun onDateSelected(date: LocalDate) {
-        _uiState.update { it.copy(selectedDate = date, selectedTime = null, availableTimeSlots = emptyList()) }
+        _uiState.update { it.copy(
+            selectedDate = date, 
+            selectedTime = null, 
+            availableTimeSlots = emptyList(),
+            errorMessage = null 
+        ) }
         loadAvailableTimes()
     }
 
     fun onTimeSelected(time: LocalTime) {
-        _uiState.update { it.copy(selectedTime = time) }
+        _uiState.update { it.copy(
+            selectedTime = time,
+            errorMessage = null 
+        ) }
     }
 
     fun confirmBooking() {
@@ -137,7 +141,7 @@ class BookingViewModel : ViewModel() {
             currentState.selectedBarber == null ||
             currentState.selectedDate == null ||
             currentState.selectedTime == null) {
-            _uiState.update { it.copy(errorMessage = "Fill in all fields") }
+            _uiState.update { it.copy(errorMessage = "Please complete all selections") }
             return
         }
 
@@ -159,18 +163,37 @@ class BookingViewModel : ViewModel() {
                 )
 
                 if (response.isSuccessful) {
+                    val appointment = response.body()
                     _uiState.update {
-                        it.copy(isLoading = false, isBookingSuccessful = true)
+                        it.copy(
+                            isLoading = false,
+                            isBookingSuccessful = true,
+                            bookingResponse = appointment
+                        )
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
+                    Log.e("BookingViewModel", "Failure: $errorBody")
+                    
+                    val errorMessage = try {
+                        val json = JSONObject(errorBody)
+                        when {
+                            json.has("message") -> json.getString("message")
+                            json.has("error") -> json.getString("error")
+                            else -> "Booking failed: ${response.code()}"
+                        }
+                    } catch (e: Exception) {
+                        "Server error (${response.code()}). Please try another slot."
+                    }
+                    
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Booking failed")
+                        it.copy(isLoading = false, errorMessage = errorMessage)
                     }
                 }
             } catch (e: Exception) {
+                Log.e("BookingViewModel", "Network Error", e)
                 _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Connection error: ${e.message}")
+                    it.copy(isLoading = false, errorMessage = "Network failure. Check connection.")
                 }
             }
         }
@@ -181,6 +204,6 @@ class BookingViewModel : ViewModel() {
     }
 
     fun resetBookingSuccess() {
-        _uiState.update { it.copy(isBookingSuccessful = false) }
+        _uiState.update { it.copy(isBookingSuccessful = false, bookingResponse = null) }
     }
 }

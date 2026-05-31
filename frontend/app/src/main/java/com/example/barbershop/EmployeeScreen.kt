@@ -33,6 +33,9 @@ fun EmployeeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+    // Filter state: by default only show BOOKED
+    var selectedStatuses by remember { mutableStateOf(setOf("BOOKED")) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -129,7 +132,34 @@ fun EmployeeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            SectionHeader("Today's Schedule")
+            Text(
+                text = "Today's Schedule",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Checkbox Filter Section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusFilterItem("Booked", "BOOKED", selectedStatuses) { updated -> selectedStatuses = updated }
+                    StatusFilterItem("Completed", "COMPLETED", selectedStatuses) { updated -> selectedStatuses = updated }
+                    StatusFilterItem("Cancelled", "CANCELLED", selectedStatuses) { updated -> selectedStatuses = updated }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val filteredAppointments = uiState.appointments.filter { it.status in selectedStatuses }
 
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -139,18 +169,22 @@ fun EmployeeScreen(
                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                     Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
                 }
-            } else if (uiState.appointments.isEmpty()) {
+            } else if (filteredAppointments.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No appointments scheduled for today.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = if (uiState.appointments.isEmpty()) "No appointments scheduled for today." else "No matches for selected filters.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             } else {
-                uiState.appointments.forEach { appointment ->
+                filteredAppointments.forEach { appointment ->
                     EmployeeAppointmentCard(
                         appointment = appointment,
                         onMarkCompleted = { viewModel.markAppointmentAsCompleted(appointment.appointmentId) }
@@ -160,6 +194,26 @@ fun EmployeeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+fun StatusFilterItem(
+    label: String,
+    status: String,
+    selectedStatuses: Set<String>,
+    onFilterChanged: (Set<String>) -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = status in selectedStatuses,
+            onCheckedChange = { isChecked ->
+                val newSet = selectedStatuses.toMutableSet()
+                if (isChecked) newSet.add(status) else newSet.remove(status)
+                onFilterChanged(newSet)
+            }
+        )
+        Text(text = label, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -207,7 +261,7 @@ fun EmployeeAppointmentCard(
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.tertiary)
+                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = appointment.client?.name ?: "Unknown Client",

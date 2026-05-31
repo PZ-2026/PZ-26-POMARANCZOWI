@@ -46,7 +46,10 @@ import androidx.compose.ui.unit.dp
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToHome: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToEmployeePanel: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -76,8 +79,13 @@ fun SettingsScreen(
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                         selected = false,
-                        onClick = onNavigateToProfile,
-                        colors = navItemColors
+                        colors = navItemColors,
+                        onClick = { viewModel.onProfileClick(
+                            navigateToLogin = onNavigateToLogin,
+                            navigateToProfile = onNavigateToProfile,
+                            navigateToEmployeePanel = onNavigateToEmployeePanel,
+                            navigateToAdminPanel = onNavigateToAdminPanel
+                        )}
                     )
                     NavigationBarItem(
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },

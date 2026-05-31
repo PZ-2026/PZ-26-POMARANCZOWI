@@ -7,6 +7,13 @@ import pl.pomaranczowi.backend.entity.Availability;
 import pl.pomaranczowi.backend.entity.Barber;
 import pl.pomaranczowi.backend.repository.AvailabilityRepository;
 import pl.pomaranczowi.backend.repository.BarberRepository;
+import pl.pomaranczowi.backend.repository.AppointmentRepository;
+import pl.pomaranczowi.backend.util.TimeSlotUtil;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Duration;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +26,9 @@ public class AvailabilityService {
 
     @Autowired
     private BarberRepository barberRepository;
+
+    @Autowired
+    private AppointmentRepository appointmentRepository;
 
     public List<AvailabilityDto> getAvailabilityByBarber(Long barberId) {
         List<Availability> availabilities = availabilityRepository.findByBarberBarberId(barberId);
@@ -71,4 +81,38 @@ public class AvailabilityService {
         }
         availabilityRepository.delete(availability);
     }
+
+        // Get available times for a specific date, filtering out already booked appointments
+        public List<String> getAvailableTimes(Long barberId, LocalDate date, int slotDurationMinutes) {
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+        Availability availability = availabilityRepository.findByBarberBarberIdAndDayOfWeek(barberId, dayOfWeek)
+            .orElseThrow(() -> new RuntimeException("No availability for this day"));
+
+        LocalDateTime startDateTime = LocalDateTime.of(date, availability.getStartTime());
+        LocalDateTime endDateTime = LocalDateTime.of(date, availability.getEndTime());
+
+        List<pl.pomaranczowi.backend.entity.Appointment> appointments = appointmentRepository
+            .findByBarberBarberIdAndStartTimeBetween(barberId, startDateTime, endDateTime);
+
+        Duration slotDuration = Duration.ofMinutes(slotDurationMinutes);
+
+        List<String> timeSlots = TimeSlotUtil.generateTimeSlots(availability.getStartTime(), availability.getEndTime(), slotDurationMinutes);
+
+        return timeSlots.stream()
+            .filter(slot -> {
+                LocalTime lt;
+                try {
+                lt = LocalTime.parse(slot);
+                } catch (Exception ex) {
+                return false;
+                }
+                LocalDateTime slotStart = LocalDateTime.of(date, lt);
+                LocalDateTime slotEnd = slotStart.plus(slotDuration);
+
+                return appointments.stream().noneMatch(a ->
+                    a.getStartTime().isBefore(slotEnd) && a.getEndTime().isAfter(slotStart)
+                );
+            })
+            .collect(Collectors.toList());
+        }
 }

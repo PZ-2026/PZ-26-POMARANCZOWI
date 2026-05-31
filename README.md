@@ -58,3 +58,17 @@ return new AuthResponse(
     user.getRole()
 );
 ```
+
+<hr>
+
+`/api/availability/barber/{barberId}/date/{date yyyy-MM-dd}/available-times`
+`/api/availability/barber/1/date/2026-06-22/available-times` -> Zwraca dostępne godziny dla barbera w danym dniu. Bierze pod uwagę jego godziny pracy, i już zarezerwowane wizyty.
+
+Zwraca odpowiedź json z listą dostępnych godzin:
+```java
+return [
+    "9:00",
+    "9:30",
+    "10:00"
+    ]
+```

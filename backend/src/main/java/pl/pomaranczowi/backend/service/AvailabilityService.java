@@ -92,7 +92,10 @@ public class AvailabilityService {
         LocalDateTime endDateTime = LocalDateTime.of(date, availability.getEndTime());
 
         List<pl.pomaranczowi.backend.entity.Appointment> appointments = appointmentRepository
-            .findByBarberBarberIdAndStartTimeBetween(barberId, startDateTime, endDateTime);
+            .findByBarberBarberIdAndStartTimeBetween(barberId, startDateTime, endDateTime)
+            .stream()
+            .filter(a -> a.getStatus() != pl.pomaranczowi.backend.entity.AppointmentStatus.CANCELLED)
+            .collect(Collectors.toList());
 
         int serviceDurationMinutes = Math.toIntExact(serviceDuration.toMinutes());
         Duration prepBuffer = Duration.ofMinutes(5);

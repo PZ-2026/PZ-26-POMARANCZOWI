@@ -186,7 +186,21 @@ public class AppointmentService {
                 appointment.getBarber().getUser().getRole()
         );
 
-        List<ServiceDto> serviceDtos = new ArrayList<>();
+            List<ServiceDto> serviceDtos = appointmentServiceRepository
+                .findByAppointmentAppointmentId(appointment.getAppointmentId())
+                .stream()
+                .map(appointmentService -> {
+                    pl.pomaranczowi.backend.entity.Service service = appointmentService.getService();
+                    return new ServiceDto(
+                        service.getServiceId(),
+                        service.getName(),
+                        service.getDescription(),
+                        service.getDurationMinutes(),
+                        service.getPrice(),
+                        service.getIsActive()
+                    );
+                })
+                .collect(Collectors.toList());
 
         return new AppointmentResponse(
                 appointment.getAppointmentId(),

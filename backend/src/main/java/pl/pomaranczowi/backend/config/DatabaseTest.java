@@ -23,6 +23,7 @@ public class DatabaseTest {
             ServiceRepository serviceRepo,
             AvailabilityRepository availabilityRepo,
             BarberServiceRepository barberServiceRepo,
+            AppointmentServiceRepository appointmentServiceRepo,
             AppointmentRepository appointmentRepo) {
         return args -> {
 
@@ -91,6 +92,10 @@ public class DatabaseTest {
             );
             // save the appointment
             appointmentRepo.save(appt1);
+
+            // Connect appointment with a service
+            AppointmentService apptService = new AppointmentService(null, appt1, s1);
+            appointmentServiceRepo.save(apptService);
 
             System.out.println("Użytkownicy: " + userRepo.count());
             System.out.println("Barberzy: " + barberRepo.count());

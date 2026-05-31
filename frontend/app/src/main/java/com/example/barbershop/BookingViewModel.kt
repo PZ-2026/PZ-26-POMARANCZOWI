@@ -84,10 +84,13 @@ class BookingViewModel : ViewModel() {
     private fun loadAvailableTimes() {
         val barberId = _uiState.value.selectedBarber?.id ?: return
         val date = _uiState.value.selectedDate ?: return
+        val durationMinutes = _uiState.value.selectedService?.durationMinutes ?: 30
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val response = NetworkClient.barberApi.getAvailableTimes(barberId, date.toString())
+                // Format duration for ISO-8601 (e.g., PT30M)
+                val durationIso = "PT${durationMinutes}M"
+                val response = NetworkClient.barberApi.getAvailableTimes(barberId, date.toString(), durationIso)
                 if (response.isSuccessful) {
                     val times = response.body()?.map { LocalTime.parse(it) } ?: emptyList()
                     _uiState.update { it.copy(availableTimeSlots = times) }

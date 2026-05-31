@@ -24,7 +24,8 @@ interface BarberApi {
     @GET("api/availability/barber/{barberId}/date/{date}/available-times")
     suspend fun getAvailableTimes(
         @Path("barberId") barberId: Long,
-        @Path("date") date: String
+        @Path("date") date: String,
+        @Query("serviceDuration") serviceDuration: String
     ): Response<List<String>>
 }
 

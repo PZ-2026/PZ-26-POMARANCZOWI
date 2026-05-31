@@ -83,7 +83,7 @@ public class AvailabilityService {
     }
 
         // Get available times for a specific date, filtering out already booked appointments
-        public List<String> getAvailableTimes(Long barberId, LocalDate date, int slotDurationMinutes) {
+        public List<String> getAvailableTimes(Long barberId, LocalDate date, Duration serviceDuration) {
         int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
         Availability availability = availabilityRepository.findByBarberBarberIdAndDayOfWeek(barberId, dayOfWeek)
             .orElseThrow(() -> new RuntimeException("No availability for this day"));
@@ -94,11 +94,14 @@ public class AvailabilityService {
         List<pl.pomaranczowi.backend.entity.Appointment> appointments = appointmentRepository
             .findByBarberBarberIdAndStartTimeBetween(barberId, startDateTime, endDateTime);
 
-        Duration slotDuration = Duration.ofMinutes(slotDurationMinutes);
+        int serviceDurationMinutes = Math.toIntExact(serviceDuration.toMinutes());
+        Duration prepBuffer = Duration.ofMinutes(5);
+        Duration occupiedDuration = serviceDuration.plus(prepBuffer);
 
-        List<String> timeSlots = TimeSlotUtil.generateTimeSlots(availability.getStartTime(), availability.getEndTime(), slotDurationMinutes);
+        // Candidate start times are always in 15-minute steps.
+        List<String> timeSlots = TimeSlotUtil.generateTimeSlots(availability.getStartTime(), availability.getEndTime(), 15);
 
-        LocalTime lastAllowedStart = availability.getEndTime().minusMinutes(30);
+        LocalTime lastAllowedStart = availability.getEndTime().minus(occupiedDuration);
 
         return timeSlots.stream()
             .filter(slot -> {
@@ -108,20 +111,20 @@ public class AvailabilityService {
                 } catch (Exception ex) {
                 return false;
                 }
-                // Exclude slots that start after the last allowed start (reserve final 30 minutes)
+                // Exclude slots that do not leave enough time for the service plus prep window
                 if (lt.isAfter(lastAllowedStart)) {
                     return false;
                 }
                     LocalDateTime slotStart = LocalDateTime.of(date, lt);
-                    LocalDateTime slotEnd = slotStart.plus(slotDuration);
+                    LocalDateTime slotEnd = slotStart.plusMinutes(serviceDurationMinutes);
+                    LocalDateTime occupiedUntil = slotEnd.plus(prepBuffer);
 
-                    // Add a post-appointment buffer equal to the slot duration
-                    Duration postBuffer = slotDuration;
-
-                    // Disallow slot if it overlaps an appointment or starts within the post-appointment buffer
-                    return appointments.stream().noneMatch(a ->
-                            a.getStartTime().isBefore(slotEnd) && a.getEndTime().plus(postBuffer).isAfter(slotStart)
-                    );
+                    // Disallow slot if it overlaps an appointment's padded busy window.
+                    return appointments.stream().noneMatch(a -> {
+                        LocalDateTime busyStart = a.getStartTime().minusMinutes(5); // 5 min buffer before appointment
+                        LocalDateTime busyEnd = a.getEndTime().plusMinutes(5); // 5 min buffer after appointment
+                        return slotStart.isBefore(busyEnd) && occupiedUntil.isAfter(busyStart);
+                    });
             })
             .collect(Collectors.toList());
         }

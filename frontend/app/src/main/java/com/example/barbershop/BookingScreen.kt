@@ -55,6 +55,19 @@ fun BookingScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // Filter out past time slots if today is selected
+    val filteredTimeSlots = remember(uiState.availableTimeSlots, uiState.selectedDate) {
+        val now = LocalTime.now()
+        val today = LocalDate.now()
+        uiState.availableTimeSlots.filter { time ->
+            if (uiState.selectedDate == today) {
+                time.isAfter(now)
+            } else {
+                true
+            }
+        }
+    }
+
     LaunchedEffect(uiState.isBookingSuccessful) {
         if (uiState.isBookingSuccessful) {
             onBookingSuccess()
@@ -250,7 +263,7 @@ fun BookingScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-            } else if (uiState.availableTimeSlots.isEmpty()) {
+            } else if (filteredTimeSlots.isEmpty()) {
                 Text(
                     text = "No available slots for the selected date",
                     style = MaterialTheme.typography.bodyMedium,
@@ -265,19 +278,17 @@ fun BookingScreen(
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    uiState.availableTimeSlots.chunked(4).forEach { rowSlots ->
+                    filteredTimeSlots.chunked(4).forEach { rowSlots ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             rowSlots.forEach { time ->
                                 Box(modifier = Modifier.weight(1f)) {
-                                    val isToday = uiState.selectedDate == LocalDate.now()
-                                    val isPastTime = isToday && time.isBefore(LocalTime.now())
                                     TimeSlotItem(
                                         time = time,
                                         isSelected = uiState.selectedTime == time,
-                                        enabled = !isPastTime,
+                                        enabled = true,
                                         onClick = { viewModel.onTimeSelected(time) }
                                     )
                                 }

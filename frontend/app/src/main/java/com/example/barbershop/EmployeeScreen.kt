@@ -258,7 +258,6 @@ fun EmployeeAppointmentCard(
                         text = appointment.services.joinToString(", ") { it.name }.ifEmpty { "Service" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
@@ -266,7 +265,6 @@ fun EmployeeAppointmentCard(
                         Text(
                             text = appointment.client?.name ?: "Unknown Client",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }
                 }
@@ -288,7 +286,6 @@ fun EmployeeAppointmentCard(
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 12.dp),
                 thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
             )
 
             Row(
@@ -297,13 +294,12 @@ fun EmployeeAppointmentCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
+                    Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (dateTime != null) "${dateTime.format(dateFormatter)} @ ${dateTime.format(timeFormatter)}" else appointment.startTime,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
 

@@ -18,6 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.barbershop.network.AppointmentResponse
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,11 +32,6 @@ fun EmployeeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-
-    // Load data on entry
-    LaunchedEffect(Unit) {
-        viewModel.loadEmployeeData()
-    }
 
     Scaffold(
         topBar = {
@@ -152,29 +151,46 @@ fun EmployeeScreen(
                 }
             } else {
                 uiState.appointments.forEach { appointment ->
-                    AppointmentCard(
+                    EmployeeAppointmentCard(
                         appointment = appointment,
-                        onMarkCompleted = { viewModel.markAppointmentAsCompleted(appointment.id) }
+                        onMarkCompleted = { viewModel.markAppointmentAsCompleted(appointment.appointmentId) }
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-fun AppointmentCard(
-    appointment: EmployeeAppointment,
+fun EmployeeAppointmentCard(
+    appointment: AppointmentResponse,
     onMarkCompleted: () -> Unit
 ) {
-    val isCompleted = appointment.status == "Completed"
+    val isCompleted = appointment.status == "COMPLETED"
+    val isCancelled = appointment.status == "CANCELLED"
     
+    val dateTime = try { LocalDateTime.parse(appointment.startTime) } catch (e: Exception) { null }
+    val dateFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM", Locale.ENGLISH)
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    val statusColor = when (appointment.status) {
+        "COMPLETED" -> Color(0xFF2E7D32) // Green
+        "CANCELLED" -> Color(0xFFC62828) // Red
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    
+    val statusContainerColor = when (appointment.status) {
+        "COMPLETED" -> Color(0xFFE8F5E9) // Light Green
+        "CANCELLED" -> Color(0xFFFFEBEE) // Light Red
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.inverseOnSurface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -185,7 +201,7 @@ fun AppointmentCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = appointment.service,
+                        text = appointment.services.joinToString(", ") { it.name }.ifEmpty { "Service" },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -194,7 +210,7 @@ fun AppointmentCard(
                         Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.tertiary)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = appointment.clientName,
+                            text = appointment.client?.name ?: "Unknown Client",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -203,13 +219,13 @@ fun AppointmentCard(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                    color = statusContainerColor,
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text(
                         text = appointment.status,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = statusColor,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -230,14 +246,14 @@ fun AppointmentCard(
                     Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.tertiary)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "${appointment.date} @ ${appointment.time}",
+                        text = if (dateTime != null) "${dateTime.format(dateFormatter)} @ ${dateTime.format(timeFormatter)}" else appointment.startTime,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
 
-                if (!isCompleted) {
+                if (!isCompleted && !isCancelled) {
                     Button(
                         onClick = onMarkCompleted,
                         modifier = Modifier.height(32.dp),

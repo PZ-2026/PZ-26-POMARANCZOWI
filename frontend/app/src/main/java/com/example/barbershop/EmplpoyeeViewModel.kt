@@ -1,10 +1,15 @@
 package com.example.barbershop
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.barbershop.network.AppointmentResponse
 import com.example.barbershop.network.NetworkClient
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class EmployeeAppointment(
     val id: String,
@@ -17,6 +22,8 @@ data class EmployeeAppointment(
 
 data class EmployeeUiState(
     val employeeName: String = "",
+    val email: String = "",
+    val phone: String = "",
     val appointments: List<EmployeeAppointment> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
@@ -25,6 +32,30 @@ data class EmployeeUiState(
 class EmployeeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(EmployeeUiState())
     val uiState: StateFlow<EmployeeUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            NetworkClient.authState.collect { authState ->
+                when (authState) {
+                    is NetworkClient.AuthState.LoggedIn -> {
+                        _uiState.update {
+                            it.copy(
+                                employeeName = authState.name,
+                                email = authState.email,
+                                phone = authState.phone,
+                                isLoading = false
+                            )
+                        }
+                        // Load data here
+                    }
+                    is NetworkClient.AuthState.LoggedOut -> {
+                        delay(750)
+                        _uiState.update { EmployeeUiState() }
+                    }
+                }
+            }
+        }
+    }
 
     // Funkcja inicjalizująca
     fun loadEmployeeData() {

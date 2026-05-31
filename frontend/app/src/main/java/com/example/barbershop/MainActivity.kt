@@ -157,7 +157,8 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("home") {
                                     popUpTo(0) { inclusive = true }
                                 }
-                            }
+                            },
+                            onNavigateToSettings = { navController.navigate("settings") }
                         )
                     }
                     composable("profile") {

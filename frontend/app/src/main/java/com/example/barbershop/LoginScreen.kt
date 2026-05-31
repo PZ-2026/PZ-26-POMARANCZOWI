@@ -132,15 +132,15 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Forgot Password Link
-            Text(
-                text = "Forgot password?",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clickable { onForgotPassword() }
-            )
+            // Forgot Password Link TODO: IP2-46 Add forgot password functionality. Connect with backend in ForgotPasswordViewModel and uncomment this.
+//            Text(
+//                text = "Forgot password?",
+//                fontWeight = FontWeight.Bold,
+//                color = MaterialTheme.colorScheme.onSurface,
+//                modifier = Modifier
+//                    .align(Alignment.End)
+//                    .clickable { onForgotPassword() }
+//            )
 
             Spacer(modifier = Modifier.height(48.dp))
 

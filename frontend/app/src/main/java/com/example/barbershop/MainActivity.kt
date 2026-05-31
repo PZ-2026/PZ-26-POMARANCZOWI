@@ -158,7 +158,6 @@ class MainActivity : ComponentActivity() {
                     composable("profile") {
                         UserProfileScreen(
                             viewModel = userProfileViewModel,
-                            onNavigateBack = { navController.popBackStack() },
                             onNavigateToHome = {
                                 navController.navigate("home") {
                                     popUpTo("home") { inclusive = true }

@@ -1,5 +1,6 @@
 package com.example.barbershop
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.barbershop.network.AppointmentResponse
@@ -51,13 +52,37 @@ class UserProfileViewModel : ViewModel() {
 
     fun loadUpcomingAppointments() {
         viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val response = NetworkClient.appointmentApi.getUpcomingAppointments()
                 if (response.isSuccessful) {
                     val appointments = response.body() ?: emptyList()
-                    _uiState.update { it.copy(upcomingAppointments = appointments) }
+                    // Order by appointment time (startTime)
+                    val sortedAppointments = appointments.sortedBy { it.startTime }
+                    _uiState.update { it.copy(upcomingAppointments = sortedAppointments, isLoading = false) }
+                } else {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load appointments") }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Connection error") }
+            }
+        }
+    }
+
+    fun cancelAppointment(appointmentId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.appointmentApi.cancelAppointment(appointmentId)
+                if (response.isSuccessful) {
+                    // Refresh the list after successful cancellation
+                    loadUpcomingAppointments()
+                } else {
+                    Log.e("UserProfileViewModel", "Failed to cancel appointment: ${response.code()}")
+                    _uiState.update { it.copy(errorMessage = "Failed to cancel appointment") }
+                }
+            } catch (e: Exception) {
+                Log.e("UserProfileViewModel", "Error cancelling appointment", e)
+                _uiState.update { it.copy(errorMessage = "Connection error while cancelling") }
             }
         }
     }
@@ -65,5 +90,9 @@ class UserProfileViewModel : ViewModel() {
     fun logout(navigateToHome: () -> Unit) {
         NetworkClient.logout()
         navigateToHome()
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

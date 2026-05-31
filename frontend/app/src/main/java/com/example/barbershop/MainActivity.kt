@@ -153,8 +153,8 @@ class MainActivity : ComponentActivity() {
                     composable("employee_panel") {
                         EmployeeScreen(
                             viewModel = employeeViewModel,
-                            onNavigateToLogin = {
-                                navController.navigate("login") {
+                            onNavigateToHome = {
+                                navController.navigate("home") {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }

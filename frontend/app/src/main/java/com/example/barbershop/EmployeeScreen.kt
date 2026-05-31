@@ -23,7 +23,7 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun EmployeeScreen(
     viewModel: EmployeeViewModel,
-    onNavigateToLogin: () -> Unit
+    onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -47,8 +47,7 @@ fun EmployeeScreen(
                 },
                 actions = {
                     IconButton(onClick = {
-                        viewModel.logout()
-                        onNavigateToLogin()
+                        viewModel.logout(navigateToHome = onNavigateToHome)
                     }) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,

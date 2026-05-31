@@ -1,6 +1,7 @@
 package com.example.barbershop
 
 import androidx.lifecycle.ViewModel
+import com.example.barbershop.network.NetworkClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,7 +61,8 @@ class EmployeeViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(appointments = currentList)
     }
 
-    fun logout() {
-        // TODO
+    fun logout(navigateToHome: () -> Unit) {
+        NetworkClient.logout()
+        navigateToHome()
     }
 }

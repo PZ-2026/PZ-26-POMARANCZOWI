@@ -98,6 +98,8 @@ public class AvailabilityService {
 
         List<String> timeSlots = TimeSlotUtil.generateTimeSlots(availability.getStartTime(), availability.getEndTime(), slotDurationMinutes);
 
+        LocalTime lastAllowedStart = availability.getEndTime().minusMinutes(30);
+
         return timeSlots.stream()
             .filter(slot -> {
                 LocalTime lt;
@@ -106,12 +108,20 @@ public class AvailabilityService {
                 } catch (Exception ex) {
                 return false;
                 }
-                LocalDateTime slotStart = LocalDateTime.of(date, lt);
-                LocalDateTime slotEnd = slotStart.plus(slotDuration);
+                // Exclude slots that start after the last allowed start (reserve final 30 minutes)
+                if (lt.isAfter(lastAllowedStart)) {
+                    return false;
+                }
+                    LocalDateTime slotStart = LocalDateTime.of(date, lt);
+                    LocalDateTime slotEnd = slotStart.plus(slotDuration);
 
-                return appointments.stream().noneMatch(a ->
-                    a.getStartTime().isBefore(slotEnd) && a.getEndTime().isAfter(slotStart)
-                );
+                    // Add a post-appointment buffer equal to the slot duration
+                    Duration postBuffer = slotDuration;
+
+                    // Disallow slot if it overlaps an appointment or starts within the post-appointment buffer
+                    return appointments.stream().noneMatch(a ->
+                            a.getStartTime().isBefore(slotEnd) && a.getEndTime().plus(postBuffer).isAfter(slotStart)
+                    );
             })
             .collect(Collectors.toList());
         }

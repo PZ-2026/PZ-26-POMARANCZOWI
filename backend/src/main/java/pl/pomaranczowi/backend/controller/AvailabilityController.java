@@ -53,7 +53,7 @@ public class AvailabilityController {
             @PathVariable String date) {
         try {
             LocalDate ld = LocalDate.parse(date);
-            return ResponseEntity.ok(availabilityService.getAvailableTimes(barberId, ld, 30));
+            return ResponseEntity.ok(availabilityService.getAvailableTimes(barberId, ld, 15));
         } catch (DateTimeParseException ex) {
             return ResponseEntity.badRequest().build();
         }

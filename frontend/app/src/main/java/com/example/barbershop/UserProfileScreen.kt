@@ -14,9 +14,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Agriculture
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,7 +47,7 @@ fun UserProfileScreen(
     viewModel: UserProfileViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToBooking: () -> Unit
+    onNavigateToSettings: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -105,9 +107,9 @@ fun UserProfileScreen(
                         colors = navItemColors
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         selected = false,
-                        onClick = onNavigateToBooking,
+                        onClick = onNavigateToSettings,
                         colors = navItemColors
                     )
                 }

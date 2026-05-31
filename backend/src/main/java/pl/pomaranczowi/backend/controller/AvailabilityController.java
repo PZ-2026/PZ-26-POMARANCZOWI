@@ -7,6 +7,9 @@ import pl.pomaranczowi.backend.dto.AvailabilityDto;
 import pl.pomaranczowi.backend.service.AvailabilityService;
 
 import java.util.List;
+import java.time.LocalDate;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 
 @RestController
 @RequestMapping("/api/availability")
@@ -41,5 +44,21 @@ public class AvailabilityController {
             @RequestAttribute("userId") Long userId) {
         availabilityService.deleteAvailability(id, userId);
         return ResponseEntity.ok().build();
+    }
+
+    // Returns available time slots for a given barber on a specific date (ISO yyyy-MM-dd)
+    // Query param `serviceDuration` controls how long the requested service is, e.g. PT30M.
+    // Example response: ["09:00", "09:30", "10:00", ...]
+    @GetMapping("/barber/{barberId}/date/{date}/available-times")
+    public ResponseEntity<List<String>> getAvailableTimes(
+            @PathVariable Long barberId,
+            @PathVariable String date,
+            @RequestParam(name = "serviceDuration", defaultValue = "PT30M") Duration serviceDuration) {
+        try {
+            LocalDate ld = LocalDate.parse(date);
+            return ResponseEntity.ok(availabilityService.getAvailableTimes(barberId, ld, serviceDuration));
+        } catch (DateTimeParseException ex) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

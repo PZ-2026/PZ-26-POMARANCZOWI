@@ -88,6 +88,11 @@ class MainActivity : ComponentActivity() {
                             viewModel = registerViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToLogin = { navController.navigate("login") },
+                            onNavigateToHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("forgot") {

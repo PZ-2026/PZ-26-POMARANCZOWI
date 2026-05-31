@@ -26,6 +26,7 @@ fun RegisterScreen(
     viewModel: RegisterViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -130,10 +131,19 @@ fun RegisterScreen(
 
             // Register Button
             Button(
-                onClick = { viewModel.register() },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                onClick = { viewModel.register(onNavigateToHome) },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !uiState.isLoading
             ) {
-                Text("Sign Up", fontWeight = FontWeight.Bold)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Sign Up", fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

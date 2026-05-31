@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.barbershop.network.AppointmentResponse
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -33,8 +34,9 @@ fun EmployeeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    // Filter state: by default only show BOOKED
+    // Filter states
     var selectedStatuses by remember { mutableStateOf(setOf("BOOKED")) }
+    var showTodayOnly by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -132,34 +134,50 @@ fun EmployeeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Today's Schedule",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            SectionHeader("Schedule Filters")
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Checkbox Filter Section
+            // Filter Section
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatusFilterItem("Booked", "BOOKED", selectedStatuses) { updated -> selectedStatuses = updated }
-                    StatusFilterItem("Completed", "COMPLETED", selectedStatuses) { updated -> selectedStatuses = updated }
-                    StatusFilterItem("Cancelled", "CANCELLED", selectedStatuses) { updated -> selectedStatuses = updated }
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StatusFilterItem("Booked", "BOOKED", selectedStatuses) { updated -> selectedStatuses = updated }
+                        StatusFilterItem("Done", "COMPLETED", selectedStatuses) { updated -> selectedStatuses = updated }
+                        StatusFilterItem("Cancelled", "CANCELLED", selectedStatuses) { updated -> selectedStatuses = updated }
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = showTodayOnly,
+                            onCheckedChange = { showTodayOnly = it }
+                        )
+                        Text(text = "Show today only", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val filteredAppointments = uiState.appointments.filter { it.status in selectedStatuses }
+            val filteredAppointments = uiState.appointments.filter { appointment ->
+                val statusMatches = appointment.status in selectedStatuses
+                val dateMatches = if (showTodayOnly) {
+                    val dateTime = try { LocalDateTime.parse(appointment.startTime) } catch (e: Exception) { null }
+                    dateTime?.toLocalDate() == LocalDate.now()
+                } else {
+                    true
+                }
+                statusMatches && dateMatches
+            }
 
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
@@ -177,7 +195,7 @@ fun EmployeeScreen(
                 ) {
                     Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = if (uiState.appointments.isEmpty()) "No appointments scheduled for today." else "No matches for selected filters.",
+                            text = if (uiState.appointments.isEmpty()) "No appointments scheduled." else "No available time slots for the selected day.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -2,12 +2,9 @@ package com.example.barbershop.booking
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.barbershop.network.AppointmentApi
 import com.example.barbershop.network.AppointmentRequest
-import com.example.barbershop.network.BarberApi
 import com.example.barbershop.network.BarberDto
 import com.example.barbershop.network.NetworkClient
-import com.example.barbershop.network.ServiceApi
 import com.example.barbershop.network.ServiceDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,10 +19,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 data class Barber(val id: Long, val name: String, val specialization: String)
-data class Service(val id: Long, val name: String, val price: String, val durationMinutes: Int)
+data class Service(val id: Long, val name: String, val description: String, val price: String, val durationMinutes: Int)
 
 data class BookingUiState(
-    val availableServices: List<Service> = emptyList(),
     val selectedService: Service? = null,
 
     val availableBarbers: List<Barber> = emptyList(),
@@ -33,6 +29,7 @@ data class BookingUiState(
 
     val selectedDate: LocalDate? = null,
     val selectedTime: LocalTime? = null,
+    val availableTimeSlots: List<LocalTime> = emptyList(),
 
     val isLoading: Boolean = false,
     val isBookingSuccessful: Boolean = false,
@@ -56,32 +53,24 @@ class BookingViewModel : ViewModel() {
             try {
                 Log.d("BookingViewModel", "Fetching barbers...")
                 val barbersResponse = NetworkClient.barberApi.getBarbers()
-                Log.d("BookingViewModel", "Barbers response code: ${barbersResponse.code()}")
+                
+                Log.d("BookingViewModel", "Fetching service 1...")
+                val serviceResponse = NetworkClient.serviceApi.getServiceById(1L)
 
-                Log.d("BookingViewModel", "Fetching services...")
-                val servicesResponse = NetworkClient.serviceApi.getServices()
-                Log.d("BookingViewModel", "Services response code: ${servicesResponse.code()}")
-
-                if (barbersResponse.isSuccessful && servicesResponse.isSuccessful) {
+                if (barbersResponse.isSuccessful && serviceResponse.isSuccessful) {
                     val barbers = barbersResponse.body()?.map { it.toBarber() } ?: emptyList()
-                    val services = servicesResponse.body()?.map { it.toService() } ?: emptyList()
-
-                    Log.d("BookingViewModel", "Barbers count: ${barbers.size}, Services count: ${services.size}")
+                    val service = serviceResponse.body()?.toService()
 
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             availableBarbers = barbers,
-                            availableServices = services
+                            selectedService = service
                         )
                     }
                 } else {
-                    Log.e("BookingViewModel", "API error - barbers: ${barbersResponse.code()}, services: ${servicesResponse.code()}")
-                    val errorMessage = if (barbersResponse.code() == 401 || barbersResponse.code() == 403 || servicesResponse.code() == 401 || servicesResponse.code() == 403) {
-                        "You must be logged in to view available services"
-                    } else {
-                        "Failed to load data"
-                    }
+                    Log.e("BookingViewModel", "API error - barbers: ${barbersResponse.code()}, service: ${serviceResponse.code()}")
+                    val errorMessage = "Failed to load data"
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = errorMessage)
                     }
@@ -95,6 +84,25 @@ class BookingViewModel : ViewModel() {
         }
     }
 
+    private fun loadAvailableTimes() {
+        val barberId = _uiState.value.selectedBarber?.id ?: return
+        val date = _uiState.value.selectedDate ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.barberApi.getAvailableTimes(barberId, date.toString())
+                if (response.isSuccessful) {
+                    val times = response.body()?.map { LocalTime.parse(it) } ?: emptyList()
+                    _uiState.update { it.copy(availableTimeSlots = times) }
+                } else {
+                    Log.e("BookingViewModel", "Failed to load times: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e("BookingViewModel", "Error loading times", e)
+            }
+        }
+    }
+
     private fun BarberDto.toBarber() = Barber(
         id = barberId,
         name = name,
@@ -104,20 +112,19 @@ class BookingViewModel : ViewModel() {
     private fun ServiceDto.toService() = Service(
         id = serviceId,
         name = name,
+        description = description ?: "",
         price = "$${price.toInt()}",
         durationMinutes = durationMinutes
     )
 
-    fun onServiceSelected(service: Service) {
-        _uiState.update { it.copy(selectedService = service) }
-    }
-
     fun onBarberSelected(barber: Barber) {
-        _uiState.update { it.copy(selectedBarber = barber) }
+        _uiState.update { it.copy(selectedBarber = barber, selectedTime = null, availableTimeSlots = emptyList()) }
+        loadAvailableTimes()
     }
 
     fun onDateSelected(date: LocalDate) {
-        _uiState.update { it.copy(selectedDate = date) }
+        _uiState.update { it.copy(selectedDate = date, selectedTime = null, availableTimeSlots = emptyList()) }
+        loadAvailableTimes()
     }
 
     fun onTimeSelected(time: LocalTime) {
@@ -157,23 +164,8 @@ class BookingViewModel : ViewModel() {
                     }
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    Log.e("BookingViewModel", "Booking failed: ${response.code()} - $errorBody")
-                    val errorMessage = when (response.code()) {
-                        401, 403 -> "You must be logged in to make a booking"
-                        else -> {
-                            if (!errorBody.isNullOrEmpty() && errorBody.contains("message")) {
-                                try {
-                                    org.json.JSONObject(errorBody).optString("message", "Booking failed")
-                                } catch (e: Exception) {
-                                    "Booking failed"
-                                }
-                            } else {
-                                "Booking failed"
-                            }
-                        }
-                    }
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = errorMessage)
+                        it.copy(isLoading = false, errorMessage = "Booking failed")
                     }
                 }
             } catch (e: Exception) {

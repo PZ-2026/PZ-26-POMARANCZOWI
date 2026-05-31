@@ -20,6 +20,12 @@ interface BarberApi {
         @Path("barberId") barberId: Long,
         @Query("date") date: String
     ): Response<List<AppointmentResponse>>
+
+    @GET("api/availability/barber/{barberId}/date/{date}/available-times")
+    suspend fun getAvailableTimes(
+        @Path("barberId") barberId: Long,
+        @Path("date") date: String
+    ): Response<List<String>>
 }
 
 data class BarberDto(

@@ -33,8 +33,13 @@ fun UserProfileScreen(
     val scrollState = rememberScrollState()
     var appointmentToCancel by remember { mutableStateOf<Long?>(null) }
 
+    // History filter states
+    var showCompleted by remember { mutableStateOf(true) }
+    var showCancelled by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         viewModel.loadUpcomingAppointments()
+        viewModel.loadAppointmentHistory()
     }
 
     // Confirmation Dialog
@@ -144,10 +149,7 @@ fun UserProfileScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // The backend already filters out cancelled appointments
-            val activeAppointments = uiState.upcomingAppointments
-
-            if (activeAppointments.isEmpty()) {
+            if (uiState.upcomingAppointments.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
@@ -158,10 +160,7 @@ fun UserProfileScreen(
                     }
                 }
             } else {
-                activeAppointments.forEach { appointment ->
-                    // Debug print of the raw response object
-                    // Text(text = "DEBUG: ${appointment.toString()}", style = MaterialTheme.typography.labelSmall, color = Color.Red)
-                    
+                uiState.upcomingAppointments.forEach { appointment ->
                     AppointmentCard(
                         appointment = appointment,
                         onCancelClick = { appointmentToCancel = appointment.appointmentId }
@@ -177,13 +176,54 @@ fun UserProfileScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            // History Filter Section
             Card(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(12.dp)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
             ) {
-                Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text(text = "No previous visits to show", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = showCompleted,
+                            onCheckedChange = { showCompleted = it }
+                        )
+                        Text(text = "Completed", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = showCancelled,
+                            onCheckedChange = { showCancelled = it }
+                        )
+                        Text(text = "Cancelled", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            val filteredHistory = uiState.historyAppointments.filter {
+                (it.status == "COMPLETED" && showCompleted) || (it.status == "CANCELLED" && showCancelled)
+            }
+            
+            if (filteredHistory.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(text = if (uiState.historyAppointments.isEmpty()) "No previous visits to show" else "No matches for selected filters", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                filteredHistory.forEach { appointment ->
+                    AppointmentCard(
+                        appointment = appointment,
+                        onCancelClick = null
+                    )
                 }
             }
             
@@ -203,7 +243,7 @@ fun UserProfileScreen(
 }
 
 @Composable
-fun AppointmentCard(appointment: AppointmentResponse, onCancelClick: () -> Unit) {
+fun AppointmentCard(appointment: AppointmentResponse, onCancelClick: (() -> Unit)?) {
     val dateTime = try { LocalDateTime.parse(appointment.startTime) } catch (e: Exception) { null }
     val dateFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM", Locale.ENGLISH)
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -255,14 +295,41 @@ fun AppointmentCard(appointment: AppointmentResponse, onCancelClick: () -> Unit)
                     )
                 }
                 
-                OutlinedButton(
-                    onClick = onCancelClick,
-                    modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Cancel", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                if (onCancelClick != null) {
+                    OutlinedButton(
+                        onClick = onCancelClick,
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Cancel", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                    }
+                } else {
+                    // Status Badge for History
+                    val statusColor = when (appointment.status) {
+                        "COMPLETED" -> Color(0xFF2E7D32) // Green
+                        "CANCELLED" -> Color(0xFFC62828) // Red
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    val statusContainerColor = when (appointment.status) {
+                        "COMPLETED" -> Color(0xFFE8F5E9) // Light Green
+                        "CANCELLED" -> Color(0xFFFFEBEE) // Light Red
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = statusContainerColor
+                    ) {
+                        Text(
+                            text = appointment.status,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = statusColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

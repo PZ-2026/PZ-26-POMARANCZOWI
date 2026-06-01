@@ -18,6 +18,7 @@ data class UserProfileUiState(
     val email: String = "",
     val phone: String = "",
     val upcomingAppointments: List<AppointmentResponse> = emptyList(),
+    val historyAppointments: List<AppointmentResponse> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
@@ -40,6 +41,7 @@ class UserProfileViewModel : ViewModel() {
                             )
                         }
                         loadUpcomingAppointments()
+                        loadAppointmentHistory()
                     }
                     is NetworkClient.AuthState.LoggedOut -> {
                         delay(750)
@@ -61,10 +63,26 @@ class UserProfileViewModel : ViewModel() {
                     val sortedAppointments = appointments.sortedBy { it.startTime }
                     _uiState.update { it.copy(upcomingAppointments = sortedAppointments, isLoading = false) }
                 } else {
-                    _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load appointments") }
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Failed to load upcoming appointments") }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, errorMessage = "Connection error") }
+            }
+        }
+    }
+
+    fun loadAppointmentHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.appointmentApi.getAppointmentHistory()
+                if (response.isSuccessful) {
+                    val appointments = response.body() ?: emptyList()
+                    // Order by appointment time (descending - most recent first)
+                    val sortedAppointments = appointments.sortedByDescending { it.startTime }
+                    _uiState.update { it.copy(historyAppointments = sortedAppointments) }
+                }
+            } catch (e: Exception) {
+                Log.e("UserProfileViewModel", "Error loading history", e)
             }
         }
     }
@@ -74,8 +92,9 @@ class UserProfileViewModel : ViewModel() {
             try {
                 val response = NetworkClient.appointmentApi.cancelAppointment(appointmentId)
                 if (response.isSuccessful) {
-                    // Refresh the list after successful cancellation
+                    // Refresh the lists after successful cancellation
                     loadUpcomingAppointments()
+                    loadAppointmentHistory()
                 } else {
                     Log.e("UserProfileViewModel", "Failed to cancel appointment: ${response.code()}")
                     _uiState.update { it.copy(errorMessage = "Failed to cancel appointment") }

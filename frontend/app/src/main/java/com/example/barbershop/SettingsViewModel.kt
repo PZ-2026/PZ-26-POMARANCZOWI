@@ -48,4 +48,27 @@ class SettingsViewModel : ViewModel() {
             }
         }
     }
+
+    fun onProfileClick(navigateToLogin: () -> Unit, navigateToProfile: () -> Unit, navigateToEmployeePanel : () -> Unit, navigateToAdminPanel : () -> Unit) {
+        if (!NetworkClient.isLoggedIn()) {
+            navigateToLogin()
+        } else {
+            viewModelScope.launch {
+                NetworkClient.authState.collect {
+                    // If role is ADMIN, navigate to AdminProfile
+                    if (it is NetworkClient.AuthState.LoggedIn && it.role == "ADMIN") {
+                        navigateToAdminPanel()
+                    }
+                    // If role is EMPLOYEE, navigate to BarberProfile
+                    else if (it is NetworkClient.AuthState.LoggedIn && it.role == "EMPLOYEE") {
+                        navigateToEmployeePanel()
+                    }
+                    // else navigate to UserProfile
+                    else {
+                        navigateToProfile()
+                    }
+                }
+            }
+        }
+    }
 }

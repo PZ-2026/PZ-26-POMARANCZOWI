@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import com.example.barbershop.UserDto
 
 interface BarberApi {
     @GET("api/barbers")
@@ -53,7 +54,8 @@ data class AppointmentResponse(
     val endTime: String,
     val status: String,
     val createdAt: String,
-    val services: List<ServiceDto>
+    val services: List<ServiceDto>,
+    val client: UserDto? = null
 )
 
 data class ServiceDto(

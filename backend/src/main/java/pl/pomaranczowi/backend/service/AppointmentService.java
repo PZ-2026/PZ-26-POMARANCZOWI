@@ -186,6 +186,15 @@ public class AppointmentService {
                 appointment.getBarber().getUser().getRole()
         );
 
+            UserDto clientDto = new UserDto(
+                appointment.getClient().getUserId(),
+                appointment.getClient().getName(),
+                appointment.getClient().getEmail(),
+                appointment.getClient().getPhone(),
+                appointment.getClient().getCreatedAt(),
+                appointment.getClient().getRole()
+            );
+
             List<ServiceDto> serviceDtos = appointmentServiceRepository
                 .findByAppointmentAppointmentId(appointment.getAppointmentId())
                 .stream()
@@ -205,6 +214,7 @@ public class AppointmentService {
         return new AppointmentResponse(
                 appointment.getAppointmentId(),
                 barberDto,
+                clientDto,
                 appointment.getStartTime(),
                 appointment.getEndTime(),
                 appointment.getStatus(),

@@ -67,7 +67,14 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             viewModel = settingsViewModel,
                             onNavigateToHome = { navController.navigate("home") },
-                            onNavigateToProfile = { navController.navigate("profile") }
+                            onNavigateToProfile = { navController.navigate("profile") },
+                            onNavigateToEmployeePanel = { navController.navigate("employee_panel") },
+                            onNavigateToAdminPanel = { navController.navigate("admin_panel") },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("login") {
@@ -153,11 +160,12 @@ class MainActivity : ComponentActivity() {
                     composable("employee_panel") {
                         EmployeeScreen(
                             viewModel = employeeViewModel,
-                            onNavigateToLogin = {
-                                navController.navigate("login") {
+                            onNavigateToHome = {
+                                navController.navigate("home") {
                                     popUpTo(0) { inclusive = true }
                                 }
-                            }
+                            },
+                            onNavigateToSettings = { navController.navigate("settings") }
                         )
                     }
                     composable("profile") {

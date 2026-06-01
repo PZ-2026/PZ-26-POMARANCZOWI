@@ -37,6 +37,17 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    public List<AppointmentResponse> getAppointmentHistory(Long userId) {
+        List<Appointment> appointments = appointmentRepository.findHistoryByClientUserIdBeforeOrStatusIn(
+            userId,
+            LocalDateTime.now(),
+            List.of(AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED)
+        );
+        return appointments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public List<AppointmentResponse> getUpcomingAppointments(Long userId) {
         List<Appointment> appointments = appointmentRepository
                 .findByClientUserIdAndStartTimeAfterAndStatus(

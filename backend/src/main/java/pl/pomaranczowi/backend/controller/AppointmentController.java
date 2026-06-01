@@ -29,6 +29,11 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getUpcomingAppointments(userId));
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<List<AppointmentResponse>> getAppointmentHistory(@RequestAttribute("userId") Long userId) {
+        return ResponseEntity.ok(appointmentService.getAppointmentHistory(userId));
+    }
+
     @GetMapping("/barber/{barberId}/busy-times")
     public ResponseEntity<List<AppointmentResponse>> getBusyTimes(
             @PathVariable Long barberId,

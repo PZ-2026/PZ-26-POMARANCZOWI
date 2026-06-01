@@ -16,6 +16,9 @@ interface AppointmentApi {
     @GET("api/appointments/upcoming")
     suspend fun getUpcomingAppointments(): Response<List<AppointmentResponse>>
 
+    @GET("api/appointments/history")
+    suspend fun getAppointmentHistory(): Response<List<AppointmentResponse>>
+
     @POST("api/appointments")
     suspend fun createAppointment(@Body request: AppointmentRequest): Response<AppointmentResponse>
 

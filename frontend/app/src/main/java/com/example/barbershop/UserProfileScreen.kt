@@ -33,6 +33,10 @@ fun UserProfileScreen(
     val scrollState = rememberScrollState()
     var appointmentToCancel by remember { mutableStateOf<Long?>(null) }
 
+    // History filter states
+    var showCompleted by remember { mutableStateOf(true) }
+    var showCancelled by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         viewModel.loadUpcomingAppointments()
         viewModel.loadAppointmentHistory()
@@ -172,19 +176,50 @@ fun UserProfileScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            // History Filter Section
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = showCompleted,
+                            onCheckedChange = { showCompleted = it }
+                        )
+                        Text(text = "Completed", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = showCancelled,
+                            onCheckedChange = { showCancelled = it }
+                        )
+                        Text(text = "Cancelled", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            val filteredHistory = uiState.historyAppointments.filter {
+                (it.status == "COMPLETED" && showCompleted) || (it.status == "CANCELLED" && showCancelled)
+            }
             
-            if (uiState.historyAppointments.isEmpty()) {
+            if (filteredHistory.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = "No previous visits to show", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = if (uiState.historyAppointments.isEmpty()) "No previous visits to show" else "No matches for selected filters", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
-                uiState.historyAppointments.forEach { appointment ->
+                filteredHistory.forEach { appointment ->
                     AppointmentCard(
                         appointment = appointment,
                         onCancelClick = null

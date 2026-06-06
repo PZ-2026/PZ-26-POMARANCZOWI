@@ -12,6 +12,10 @@ import pl.pomaranczowi.backend.repository.UserRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service for querying barber profiles.
+ * Provides methods to list all barbers and get a barber by ID.
+ */
 @Service
 public class BarberService {
 
@@ -21,6 +25,11 @@ public class BarberService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Retrieves all barbers with their profile information.
+     *
+     * @return list of barber DTOs
+     */
     public List<BarberDto> getAllBarbers() {
         List<Barber> barbers = barberRepository.findAll();
         return barbers.stream()
@@ -28,12 +37,25 @@ public class BarberService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a single barber by their barber ID.
+     *
+     * @param id the barber ID
+     * @return the barber DTO
+     * @throws RuntimeException if the barber is not found
+     */
     public BarberDto getBarberById(Long id) {
         Barber barber = barberRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Barber not found"));
         return mapToDto(barber);
     }
 
+    /**
+     * Maps a Barber entity to its DTO, flattening the nested User data.
+     *
+     * @param barber the barber entity
+     * @return the corresponding barber DTO
+     */
     private BarberDto mapToDto(Barber barber) {
         User user = barber.getUser();
         return new BarberDto(

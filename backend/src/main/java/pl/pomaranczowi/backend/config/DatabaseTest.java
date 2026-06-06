@@ -10,12 +10,39 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/**
+ * Configuration that seeds the database with sample data for development and testing.
+ * Creates admin, barber, and client users; sample services; barber availability
+ * schedules; and a sample appointment.
+ * <p>
+ * This only runs when the database is empty.
+ */
 @Configuration
 public class DatabaseTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    /**
+     * Seeds initial data into the database on application startup if no users exist.
+     * Creates:
+     * <ul>
+     *   <li>4 users: admin, 2 barbers, 1 client</li>
+     *   <li>2 barber profiles with specializations</li>
+     *   <li>4 services (Haircut, Beard Trim, Shave, Combo)</li>
+     *   <li>Daily availability (9:00-17:00) for both barbers</li>
+     *   <li>1 sample appointment on 2026-06-22 at 11:00</li>
+     * </ul>
+     *
+     * @param userRepo                user repository
+     * @param barberRepo              barber repository
+     * @param serviceRepo             service repository
+     * @param availabilityRepo        availability repository
+     * @param barberServiceRepo       barber-service join repository
+     * @param appointmentServiceRepo  appointment-service join repository
+     * @param appointmentRepo         appointment repository
+     * @return a command line runner that executes the seeding logic
+     */
     @Bean
     public org.springframework.boot.CommandLineRunner testDb(
             UserRepository userRepo,
@@ -80,7 +107,6 @@ public class DatabaseTest {
                 availabilityRepo.save(avail);
             }
 
-            // create an appointment on 2026-06-22 from 11:00 to 11:30
             Appointment appt1 = new Appointment(
                     null,
                     client1,
@@ -90,10 +116,8 @@ public class DatabaseTest {
                     LocalDateTime.now(),
                     AppointmentStatus.BOOKED
             );
-            // save the appointment
             appointmentRepo.save(appt1);
 
-            // Connect appointment with a service
             AppointmentService apptService = new AppointmentService(null, appt1, s1);
             appointmentServiceRepo.save(apptService);
 

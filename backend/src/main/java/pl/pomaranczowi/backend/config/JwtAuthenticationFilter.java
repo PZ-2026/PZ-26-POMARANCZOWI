@@ -19,12 +19,29 @@ import java.util.Base64;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/**
+ * Once-per-request filter that intercepts HTTP requests, extracts the JWT
+ * from the Authorization header (Bearer scheme), validates it, and sets
+ * the security context with the authenticated user's ID.
+ * Also sets request attributes for userId, email, and role.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtConfig jwtConfig;
 
+    /**
+     * Extracts the JWT from the Authorization header, parses its claims,
+     * and sets the Spring Security authentication context.
+     * On success, the following request attributes are set: userId, email, role.
+     *
+     * @param request     the HTTP request
+     * @param response    the HTTP response
+     * @param filterChain the filter chain to continue processing
+     * @throws ServletException if filter processing fails
+     * @throws IOException      if an I/O error occurs
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

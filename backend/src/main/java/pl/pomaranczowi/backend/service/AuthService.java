@@ -14,6 +14,10 @@ import pl.pomaranczowi.backend.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
+/**
+ * Service handling user authentication: registration, login, and current-user retrieval.
+ * New users are always created with the CLIENT role.
+ */
 @Service
 public class AuthService {
 
@@ -26,6 +30,13 @@ public class AuthService {
     @Autowired
     private JwtService jwtService;
 
+    /**
+     * Registers a new user account and returns an authentication response with a JWT token.
+     *
+     * @param request the registration details (name, email, phone, password)
+     * @return auth response containing JWT token and user profile data
+     * @throws RuntimeException if the email is already registered
+     */
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
@@ -53,6 +64,13 @@ public class AuthService {
         );
     }
 
+    /**
+     * Authenticates a user with email and password, returning a JWT token on success.
+     *
+     * @param request the login credentials (email, password)
+     * @return auth response containing JWT token and user profile data
+     * @throws RuntimeException if the email does not exist or the password is incorrect
+     */
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
@@ -73,7 +91,12 @@ public class AuthService {
         );
     }
 
-    // ME endpoint
+    /**
+     * Retrieves the currently authenticated user's profile data from the security context.
+     *
+     * @return auth response with user profile data (without a new token)
+     * @throws RuntimeException if the user is not authenticated or not found
+     */
     public AuthResponse me() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {

@@ -4,6 +4,9 @@ import pl.pomaranczowi.backend.entity.AppointmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * DTO for returning full appointment details with nested barber, client, and service data.
+ */
 public class AppointmentResponse {
 
     private Long appointmentId;

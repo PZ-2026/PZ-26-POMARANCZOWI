@@ -3,6 +3,9 @@ package pl.pomaranczowi.backend.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+/**
+ * JPA join-table entity mapping which barbers offer which services (many-to-many bridge).
+ */
 @Entity
 @Table(name = "barber_service")
 public class BarberService {

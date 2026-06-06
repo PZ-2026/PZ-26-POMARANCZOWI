@@ -3,6 +3,10 @@ package pl.pomaranczowi.backend.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+/**
+ * JPA join-table entity mapping services to an appointment (many-to-many bridge).
+ * A single appointment can have multiple services.
+ */
 @Entity
 @Table(name = "appointment_service")
 public class AppointmentService {

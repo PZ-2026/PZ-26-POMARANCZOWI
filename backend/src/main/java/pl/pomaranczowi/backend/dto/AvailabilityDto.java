@@ -2,6 +2,9 @@ package pl.pomaranczowi.backend.dto;
 
 import java.time.LocalTime;
 
+/**
+ * DTO for transferring barber availability window data.
+ */
 public class AvailabilityDto {
 
     private Long availabilityId;

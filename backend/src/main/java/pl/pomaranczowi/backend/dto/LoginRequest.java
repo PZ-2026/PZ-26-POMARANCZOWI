@@ -3,6 +3,9 @@ package pl.pomaranczowi.backend.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+/**
+ * Request DTO for user login with validation constraints.
+ */
 public class LoginRequest {
 
     @NotBlank(message = "Email is required")

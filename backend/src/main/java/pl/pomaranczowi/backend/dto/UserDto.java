@@ -1,9 +1,11 @@
 package pl.pomaranczowi.backend.dto;
 
 import pl.pomaranczowi.backend.entity.UserRole;
-
 import java.time.LocalDateTime;
 
+/**
+ * DTO for transferring user data without the password hash.
+ */
 public class UserDto {
 
     private Long userId;

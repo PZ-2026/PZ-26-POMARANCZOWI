@@ -18,6 +18,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing barber availability schedules.
+ * Provides CRUD operations for availability windows and computes
+ * available time slots by filtering out booked appointments
+ * with 5-minute buffer windows.
+ */
 @Service
 public class AvailabilityService {
 
@@ -30,6 +36,12 @@ public class AvailabilityService {
     @Autowired
     private AppointmentRepository appointmentRepository;
 
+    /**
+     * Retrieves all availability windows for a given barber.
+     *
+     * @param barberId the ID of the barber
+     * @return list of availability DTOs for that barber
+     */
     public List<AvailabilityDto> getAvailabilityByBarber(Long barberId) {
         List<Availability> availabilities = availabilityRepository.findByBarberBarberId(barberId);
         return availabilities.stream()
@@ -37,6 +49,12 @@ public class AvailabilityService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Maps an Availability entity to its DTO representation.
+     *
+     * @param availability the availability entity
+     * @return the corresponding DTO
+     */
     private AvailabilityDto mapToDto(Availability availability) {
         return new AvailabilityDto(
                 availability.getAvailabilityId(),
@@ -46,6 +64,15 @@ public class AvailabilityService {
         );
     }
 
+    /**
+     * Creates a new availability window for a barber.
+     * The authenticated user must have a barber profile associated with their account.
+     *
+     * @param dto          the availability data to create
+     * @param barberUserId the user ID of the barber
+     * @return the created availability DTO
+     * @throws RuntimeException if the user does not have a barber profile
+     */
     public AvailabilityDto createAvailability(AvailabilityDto dto, Long barberUserId) {
         Barber barber = barberRepository.findByUserUserId(barberUserId);
         if (barber == null) {
@@ -60,6 +87,16 @@ public class AvailabilityService {
         return mapToDto(availability);
     }
 
+    /**
+     * Updates an existing availability window.
+     * Only the barber who owns the availability record is authorized to update it.
+     *
+     * @param id           the ID of the availability record to update
+     * @param dto          the updated availability data
+     * @param barberUserId the user ID of the barber
+     * @return the updated availability DTO
+     * @throws RuntimeException if the record is not found or the barber is not authorized
+     */
     public AvailabilityDto updateAvailability(Long id, AvailabilityDto dto, Long barberUserId) {
         Availability availability = availabilityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Availability not found"));
@@ -73,6 +110,14 @@ public class AvailabilityService {
         return mapToDto(availability);
     }
 
+    /**
+     * Deletes an availability window.
+     * Only the barber who owns the availability record is authorized to delete it.
+     *
+     * @param id           the ID of the availability record to delete
+     * @param barberUserId the user ID of the barber
+     * @throws RuntimeException if the record is not found or the barber is not authorized
+     */
     public void deleteAvailability(Long id, Long barberUserId) {
         Availability availability = availabilityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Availability not found"));
@@ -82,9 +127,25 @@ public class AvailabilityService {
         availabilityRepository.delete(availability);
     }
 
-        // Get available times for a specific date, filtering out already booked appointments
-        public List<String> getAvailableTimes(Long barberId, LocalDate date, Duration serviceDuration) {
-        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+    /**
+     * Computes available time slots for a barber on a given date for a specific service duration.
+     * <p>
+     * The algorithm:
+     * <ul>
+     *   <li>Generates candidate slots in 15-minute steps within the barber's availability window</li>
+     *   <li>Excludes slots that would end after the availability window (including a 5-min prep buffer)</li>
+     *   <li>Filters out slots that overlap with existing non-cancelled appointments
+     *       (each appointment is padded with 5-minute buffers before and after)</li>
+     * </ul>
+     *
+     * @param barberId         the ID of the barber
+     * @param date             the date to check availability for
+     * @param serviceDuration  the duration of the service (used to compute slot end times)
+     * @return list of available time slot strings (format: "HH:mm")
+     * @throws RuntimeException if no availability is defined for the barber on that day of the week
+     */
+    public List<String> getAvailableTimes(Long barberId, LocalDate date, Duration serviceDuration) {
+        int dayOfWeek = date.getDayOfWeek().getValue();
         Availability availability = availabilityRepository.findByBarberBarberIdAndDayOfWeek(barberId, dayOfWeek)
             .orElseThrow(() -> new RuntimeException("No availability for this day"));
 
@@ -101,7 +162,6 @@ public class AvailabilityService {
         Duration prepBuffer = Duration.ofMinutes(5);
         Duration occupiedDuration = serviceDuration.plus(prepBuffer);
 
-        // Candidate start times are always in 15-minute steps.
         List<String> timeSlots = TimeSlotUtil.generateTimeSlots(availability.getStartTime(), availability.getEndTime(), 15);
 
         LocalTime lastAllowedStart = availability.getEndTime().minus(occupiedDuration);
@@ -114,7 +174,6 @@ public class AvailabilityService {
                 } catch (Exception ex) {
                 return false;
                 }
-                // Exclude slots that do not leave enough time for the service plus prep window
                 if (lt.isAfter(lastAllowedStart)) {
                     return false;
                 }
@@ -122,10 +181,9 @@ public class AvailabilityService {
                     LocalDateTime slotEnd = slotStart.plusMinutes(serviceDurationMinutes);
                     LocalDateTime occupiedUntil = slotEnd.plus(prepBuffer);
 
-                    // Disallow slot if it overlaps an appointment's padded busy window.
                     return appointments.stream().noneMatch(a -> {
-                        LocalDateTime busyStart = a.getStartTime().minusMinutes(5); // 5 min buffer before appointment
-                        LocalDateTime busyEnd = a.getEndTime().plusMinutes(5); // 5 min buffer after appointment
+                        LocalDateTime busyStart = a.getStartTime().minusMinutes(5);
+                        LocalDateTime busyEnd = a.getEndTime().plusMinutes(5);
                         return slotStart.isBefore(busyEnd) && occupiedUntil.isAfter(busyStart);
                     });
             })

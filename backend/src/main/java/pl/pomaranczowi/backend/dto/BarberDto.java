@@ -2,6 +2,9 @@ package pl.pomaranczowi.backend.dto;
 
 import pl.pomaranczowi.backend.entity.UserRole;
 
+/**
+ * DTO for transferring barber profile data along with embedded user fields.
+ */
 public class BarberDto {
 
     private Long barberId;

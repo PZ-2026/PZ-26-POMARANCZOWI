@@ -41,12 +41,14 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.example.barbershop.network.NetworkClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
     viewModel: BookingViewModel,
     onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
     onBookingSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -54,6 +56,11 @@ fun BookingScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showDatePicker by remember { mutableStateOf(false) }
+
+    if (!NetworkClient.isLoggedIn()) {
+        AuthGuardScreen(onNavigateToLogin = onNavigateToLogin, onNavigateBack = onNavigateBack)
+        return
+    }
 
     // Filter out past time slots if today is selected
     val filteredTimeSlots = remember(uiState.availableTimeSlots, uiState.selectedDate) {
@@ -336,6 +343,69 @@ fun BookingScreen(
                 }
             ) {
                 DatePicker(state = datePickerState)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AuthGuardScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Book an Appointment", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "You need to log in to book an appointment",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Please sign in or create an account to continue",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onNavigateToLogin,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Go to Login", fontWeight = FontWeight.Bold)
             }
         }
     }

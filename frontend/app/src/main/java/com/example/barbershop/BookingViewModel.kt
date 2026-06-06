@@ -141,6 +141,11 @@ class BookingViewModel : ViewModel() {
     }
 
     fun confirmBooking() {
+        if (!NetworkClient.isLoggedIn()) {
+            _uiState.update { it.copy(errorMessage = "You must be logged in to book an appointment") }
+            return
+        }
+
         val currentState = _uiState.value
         if (currentState.selectedService == null ||
             currentState.selectedBarber == null ||

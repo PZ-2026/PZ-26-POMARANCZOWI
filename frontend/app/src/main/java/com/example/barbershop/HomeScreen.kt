@@ -207,7 +207,13 @@ fun HomeScreen(
                     ServiceItem(
                         title = service.name,
                         price = "$${service.price.toInt()}",
-                        onBookClick = { onNavigateToBooking(service.serviceId) }
+                        onBookClick = {
+                            if (NetworkClient.isLoggedIn()) {
+                                onNavigateToBooking(service.serviceId)
+                            } else {
+                                onNavigateToLogin()
+                            }
+                        }
                     )
                 }
             }
@@ -224,7 +230,13 @@ fun HomeScreen(
                     ServiceItem(
                         title = service.name,
                         price = "$${service.price.toInt()}",
-                        onBookClick = { onNavigateToBooking(service.serviceId) }
+                        onBookClick = {
+                            if (NetworkClient.isLoggedIn()) {
+                                onNavigateToBooking(service.serviceId)
+                            } else {
+                                onNavigateToLogin()
+                            }
+                        }
                     )
                 }
             }

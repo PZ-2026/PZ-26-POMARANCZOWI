@@ -129,6 +129,11 @@ class MainActivity : ComponentActivity() {
                         BookingScreen(
                             viewModel = bookingViewModel,
                             onNavigateBack = { navController.popBackStack() },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
                             onBookingSuccess = {
                                 navController.navigate("booking_success") {
                                     popUpTo("home") { inclusive = false }

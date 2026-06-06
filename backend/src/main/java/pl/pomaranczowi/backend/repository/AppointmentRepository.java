@@ -73,4 +73,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         ORDER BY COUNT(a) DESC
     """)
     List<Object[]> getBarberStatistics();
+
+    List<Appointment> findByBarberBarberId(Long barberId);
 }

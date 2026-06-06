@@ -16,4 +16,8 @@ public interface AppointmentServiceRepository
     List<AppointmentService> findByAppointmentStartTimeAfter(
             LocalDateTime after
     );
+
+    List<AppointmentService> findByAppointmentBarberBarberId(
+            Long barberId
+    );
 }

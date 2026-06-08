@@ -23,13 +23,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> users = userRepository.findAll().stream()
-                .map(user -> new UserDto(
-                        user.getUserId(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getRole().name()
-                ))
+                .map(this::mapToDto)
                 .collect(Collectors.toList());
         
         return ResponseEntity.ok(users);
@@ -42,19 +36,13 @@ public class UserController {
         user.setName(userDto.getName());
         user.setEmail(userDto.getEmail());
         user.setPhone(userDto.getPhone());
-        user.setRole(UserRole.valueOf(userDto.getRole()));
+        user.setRole(userDto.getRole());
         user.setPasswordHash("default_password"); 
         user.setCreatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
 
-        return ResponseEntity.ok(new UserDto(
-                savedUser.getUserId(), 
-                savedUser.getName(), 
-                savedUser.getEmail(), 
-                savedUser.getPhone(), 
-                savedUser.getRole().name()
-        ));
+        return ResponseEntity.ok(mapToDto(savedUser));
     }
 
     // Edycja istniejącego użytkownika
@@ -64,17 +52,11 @@ public class UserController {
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
             user.setPhone(userDto.getPhone());
-            user.setRole(UserRole.valueOf(userDto.getRole()));
+            user.setRole(userDto.getRole());
             
             User updatedUser = userRepository.save(user);
             
-            return ResponseEntity.ok(new UserDto(
-                    updatedUser.getUserId(),
-                    updatedUser.getName(),
-                    updatedUser.getEmail(),
-                    updatedUser.getPhone(),
-                    updatedUser.getRole().name()
-            ));
+            return ResponseEntity.ok(mapToDto(updatedUser));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -86,5 +68,16 @@ public class UserController {
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    private UserDto mapToDto(User user) {
+        return new UserDto(
+                user.getUserId(),
+                user.getName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getCreatedAt(),
+                user.getRole()
+        );
     }
 }

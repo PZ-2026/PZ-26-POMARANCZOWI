@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -11,14 +12,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.barbershop.network.NetworkClient
 import com.example.barbershop.network.TokenManager
 import com.example.barbershop.ui.theme.BarbershopTheme
 import com.example.barbershop.booking.BookingScreen
 import com.example.barbershop.booking.BookingViewModel
+import com.example.barbershop.booking.BookingSuccessScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +33,7 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val tokenManager = remember { TokenManager(context) }
             val navController = rememberNavController()
+            val bookingViewModel: BookingViewModel = viewModel()
 
             val factory = object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -54,7 +59,9 @@ class MainActivity : ComponentActivity() {
                             viewModel = homeViewModel,
                             onNavigateToSettings = { navController.navigate("settings") },
                             onNavigateToLogin = { navController.navigate("login") },
-                            onNavigateToBooking = { navController.navigate("booking") },
+                            onNavigateToBooking = { serviceId ->
+                                navController.navigate("booking/$serviceId")
+                            },
                             onNavigateToProfile = { navController.navigate("profile") },
                             onNavigateToEmployeePanel = { navController.navigate("employee_panel") },
                             onNavigateToAdminPanel = { navController.navigate("admin_panel") }
@@ -64,7 +71,15 @@ class MainActivity : ComponentActivity() {
                     composable("settings") {
                         SettingsScreen(
                             viewModel = settingsViewModel,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateToHome = { navController.navigate("home") },
+                            onNavigateToProfile = { navController.navigate("profile") },
+                            onNavigateToEmployeePanel = { navController.navigate("employee_panel") },
+                            onNavigateToAdminPanel = { navController.navigate("admin_panel") },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
                         )
                     }
 
@@ -88,6 +103,11 @@ class MainActivity : ComponentActivity() {
                             viewModel = registerViewModel,
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToLogin = { navController.navigate("login") },
+                            onNavigateToHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("forgot") {
@@ -108,11 +128,40 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    composable("booking") {
-                        val bookingViewModel: BookingViewModel = viewModel()
+                    composable(
+                        route = "booking/{serviceId}",
+                        arguments = listOf(navArgument("serviceId") { type = NavType.LongType })
+                    ) { backStackEntry ->
+                        val serviceId = backStackEntry.arguments?.getLong("serviceId") ?: 1L
+
+                        LaunchedEffect(serviceId) {
+                            bookingViewModel.initializeBooking(serviceId)
+                        }
+
                         BookingScreen(
                             viewModel = bookingViewModel,
-                            onNavigateBack = { navController.popBackStack() }
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            onBookingSuccess = {
+                                navController.navigate("booking_success") {
+                                    popUpTo("home") { inclusive = false }
+                                }
+                            }
+                        )
+                    }
+
+                    composable("booking_success") {
+                        BookingSuccessScreen(
+                            viewModel = bookingViewModel,
+                            onNavigateHome = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("admin_panel") {
@@ -131,24 +180,24 @@ class MainActivity : ComponentActivity() {
                         val employeeViewModel: EmployeeViewModel = viewModel()
                         EmployeeScreen(
                             viewModel = employeeViewModel,
-                            onNavigateToLogin = {
-                                navController.navigate("login") {
+                            onNavigateToHome = {
+                                navController.navigate("home") {
                                     popUpTo(0) { inclusive = true }
                                 }
-                            }
+                            },
+                            onNavigateToSettings = { navController.navigate("settings") }
                         )
                     }
                     composable("profile") {
                         val userProfileViewModel: UserProfileViewModel = viewModel()
                         UserProfileScreen(
                             viewModel = userProfileViewModel,
-                            onNavigateBack = { navController.popBackStack() },
                             onNavigateToHome = {
                                 navController.navigate("home") {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
-                            onNavigateToBooking = { navController.navigate("booking") }
+                            onNavigateToSettings = { navController.navigate("settings") }
                         )
                     }
                     composable("manage_services") {

@@ -12,6 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Core service managing the full lifecycle of appointments.
+ * Handles creation (with collision detection, 30-min advance rule,
+ * barber availability checks), updates, cancellation, and status transitions.
+ */
 @Service
 public class AppointmentService {
 
@@ -30,6 +35,12 @@ public class AppointmentService {
     @Autowired
     private AvailabilityRepository availabilityRepository;
 
+    /**
+     * Retrieves all appointments for a given user (client).
+     *
+     * @param userId the ID of the client user
+     * @return list of appointment responses for that user
+     */
     public List<AppointmentResponse> getAppointmentsByUser(Long userId) {
         List<Appointment> appointments = appointmentRepository.findByClientUserId(userId);
         return appointments.stream()
@@ -37,6 +48,29 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves past appointments and appointments with CANCELLED or COMPLETED status for a user.
+     *
+     * @param userId the ID of the client user
+     * @return list of historical appointment responses
+     */
+    public List<AppointmentResponse> getAppointmentHistory(Long userId) {
+        List<Appointment> appointments = appointmentRepository.findHistoryByClientUserIdBeforeOrStatusIn(
+            userId,
+            LocalDateTime.now(),
+            List.of(AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED)
+        );
+        return appointments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves upcoming (future) BOOKED appointments for a user.
+     *
+     * @param userId the ID of the client user
+     * @return list of upcoming appointment responses
+     */
     public List<AppointmentResponse> getUpcomingAppointments(Long userId) {
         List<Appointment> appointments = appointmentRepository
                 .findByClientUserIdAndStartTimeAfterAndStatus(
@@ -46,6 +80,13 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves non-cancelled appointments for a barber on a given date (busy times).
+     *
+     * @param barberId the ID of the barber
+     * @param date     the date to check (time portion is ignored)
+     * @return list of busy appointment responses for that day
+     */
     public List<AppointmentResponse> getBusyTimes(Long barberId, LocalDateTime date) {
         LocalDateTime startOfDay = date.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = date.toLocalDate().atTime(23, 59, 59);
@@ -56,6 +97,12 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves all appointments assigned to a barber (identified by their user ID).
+     *
+     * @param barberUserId the user ID of the barber
+     * @return list of appointment responses for that barber
+     */
     public List<AppointmentResponse> getAppointmentsForBarber(Long barberUserId) {
         List<Appointment> appointments = appointmentRepository.findByBarberUserUserId(barberUserId);
         return appointments.stream()
@@ -63,6 +110,16 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Updates the status of an appointment. Only the barber assigned to the appointment
+     * is authorized to change its status.
+     *
+     * @param appointmentId the ID of the appointment to update
+     * @param status        the new status (e.g. BOOKED, COMPLETED, CANCELLED)
+     * @param barberUserId  the user ID of the barber requesting the change
+     * @return the updated appointment response
+     * @throws RuntimeException if the appointment is not found or the barber is not authorized
+     */
     public AppointmentResponse updateStatus(Long appointmentId, AppointmentStatus status, Long barberUserId) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found"));
@@ -76,6 +133,20 @@ public class AppointmentService {
         return mapToResponse(appointment);
     }
 
+    /**
+     * Creates a new appointment with validation:
+     * <ul>
+     *   <li>Must be booked at least 30 minutes in advance</li>
+     *   <li>Barber must exist and work on the requested day</li>
+     *   <li>All requested services must exist</li>
+     *   <li>Time slot must not collide with existing non-cancelled appointments</li>
+     * </ul>
+     *
+     * @param request the appointment request containing barber ID, service IDs, and start time
+     * @param userId  the ID of the client creating the appointment
+     * @return the created appointment response with computed end time
+     * @throws RuntimeException if any validation rule is violated
+     */
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request, Long userId) {
         LocalDateTime minTime = LocalDateTime.now().plusMinutes(30);
@@ -138,6 +209,16 @@ public class AppointmentService {
         return mapToResponse(appointment);
     }
 
+    /**
+     * Updates an existing appointment's start time and/or services.
+     * Only the client who owns the appointment is authorized to edit it.
+     *
+     * @param id      the ID of the appointment to update
+     * @param request the updated appointment request data
+     * @param userId  the ID of the client requesting the update
+     * @return the updated appointment response
+     * @throws RuntimeException if the appointment is not found or the user is not authorized
+     */
     @Transactional
     public AppointmentResponse updateAppointment(Long id, AppointmentRequest request, Long userId) {
         Appointment appointment = appointmentRepository.findById(id)
@@ -162,6 +243,14 @@ public class AppointmentService {
         return mapToResponse(appointment);
     }
 
+    /**
+     * Cancels an appointment by setting its status to CANCELLED.
+     * Only the client who owns the appointment is authorized to cancel it.
+     *
+     * @param id     the ID of the appointment to cancel
+     * @param userId the ID of the client requesting cancellation
+     * @throws RuntimeException if the appointment is not found or the user is not authorized
+     */
     @Transactional
     public void cancelAppointment(Long id, Long userId) {
         Appointment appointment = appointmentRepository.findById(id)
@@ -175,6 +264,13 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
+    /**
+     * Maps an Appointment entity to its full response DTO, including nested barber,
+     * client, and service data.
+     *
+     * @param appointment the appointment entity
+     * @return the fully populated appointment response DTO
+     */
     private AppointmentResponse mapToResponse(Appointment appointment) {
         BarberDto barberDto = new BarberDto(
                 appointment.getBarber().getBarberId(),
@@ -186,11 +282,35 @@ public class AppointmentService {
                 appointment.getBarber().getUser().getRole()
         );
 
-        List<ServiceDto> serviceDtos = new ArrayList<>();
+            UserDto clientDto = new UserDto(
+                appointment.getClient().getUserId(),
+                appointment.getClient().getName(),
+                appointment.getClient().getEmail(),
+                appointment.getClient().getPhone(),
+                appointment.getClient().getCreatedAt(),
+                appointment.getClient().getRole()
+            );
+
+            List<ServiceDto> serviceDtos = appointmentServiceRepository
+                .findByAppointmentAppointmentId(appointment.getAppointmentId())
+                .stream()
+                .map(appointmentService -> {
+                    pl.pomaranczowi.backend.entity.Service service = appointmentService.getService();
+                    return new ServiceDto(
+                        service.getServiceId(),
+                        service.getName(),
+                        service.getDescription(),
+                        service.getDurationMinutes(),
+                        service.getPrice(),
+                        service.getIsActive()
+                    );
+                })
+                .collect(Collectors.toList());
 
         return new AppointmentResponse(
                 appointment.getAppointmentId(),
                 barberDto,
+                clientDto,
                 appointment.getStartTime(),
                 appointment.getEndTime(),
                 appointment.getStatus(),

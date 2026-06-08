@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
+/**
+ * JPA entity representing a booked appointment with client, barber,
+ * time window, and status.
+ */
 @Entity
 @Table(name = "appointment")
 public class Appointment {

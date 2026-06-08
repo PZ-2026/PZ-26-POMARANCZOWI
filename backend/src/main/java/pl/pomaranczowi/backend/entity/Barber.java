@@ -3,6 +3,10 @@ package pl.pomaranczowi.backend.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+/**
+ * JPA entity linking a User to their barber profile.
+ * Each barber has a specialization and an optional bio.
+ */
 @Entity
 @Table(name = "barber")
 public class Barber {

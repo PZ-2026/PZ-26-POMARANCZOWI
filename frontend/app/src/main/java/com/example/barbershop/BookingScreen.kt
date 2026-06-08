@@ -1,46 +1,98 @@
 package com.example.barbershop.booking
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.Face
+import androidx.compose.ui.unit.sp
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
+import com.example.barbershop.network.NetworkClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
     viewModel: BookingViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    onBookingSuccess: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
+
+    if (!NetworkClient.isLoggedIn()) {
+        AuthGuardScreen(onNavigateToLogin = onNavigateToLogin, onNavigateBack = onNavigateBack)
+        return
+    }
+
+    // Filter out past time slots if today is selected
+    val filteredTimeSlots = remember(uiState.availableTimeSlots, uiState.selectedDate) {
+        val now = LocalTime.now()
+        val today = LocalDate.now()
+        uiState.availableTimeSlots.filter { time ->
+            if (uiState.selectedDate == today) {
+                time.isAfter(now)
+            } else {
+                true
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.isBookingSuccessful) {
+        if (uiState.isBookingSuccessful) {
+            onBookingSuccess()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let {
+            snackbarHostState.showSnackbar(
+                message = it,
+                actionLabel = "Dismiss",
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Book an Appointment", fontWeight = FontWeight.Bold) },
@@ -56,24 +108,22 @@ fun BookingScreen(
         },
         bottomBar = {
             Surface(shadowElevation = 8.dp) {
-                PaddingValues(16.dp).let {
-                    Button(
-                        onClick = { viewModel.confirmBooking() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .height(50.dp),
-                        enabled = uiState.selectedService != null &&
-                                uiState.selectedBarber != null &&
-                                uiState.selectedDate != null &&
-                                uiState.selectedTime != null &&
-                                !uiState.isLoading
-                    ) {
-                        if (uiState.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                        } else {
-                            Text("Confirm Booking", fontWeight = FontWeight.Bold)
-                        }
+                Button(
+                    onClick = { viewModel.confirmBooking() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(50.dp),
+                    enabled = uiState.selectedService != null &&
+                            uiState.selectedBarber != null &&
+                            uiState.selectedDate != null &&
+                            uiState.selectedTime != null &&
+                            !uiState.isLoading
+                ) {
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Text("Confirm Booking", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -83,60 +133,94 @@ fun BookingScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .verticalScroll(scrollState),
+                .verticalScroll(scrollState)
+                .padding(bottom = 16.dp),
         ) {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
             if (uiState.errorMessage != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = uiState.errorMessage!!,
+                    Row(
                         modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ErrorOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = uiState.errorMessage!!,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(onClick = { viewModel.clearError() }) {
+                            Icon(Icons.Default.Face, contentDescription = "Clear", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
                 }
             }
 
-            if (uiState.availableServices.isEmpty() && !uiState.isLoading && uiState.errorMessage == null) {
-                Box(
+            // Service Information Section (Non-interactive)
+            uiState.selectedService?.let { service ->
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(16.dp)
                 ) {
-                    Text("No services available. Check connection.", color = MaterialTheme.colorScheme.error)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            SectionTitle("Select Service")
-            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                uiState.availableServices.forEach { service ->
-                    ServiceItem(
-                        service = service,
-                        isSelected = uiState.selectedService == service,
-                        onClick = { viewModel.onServiceSelected(service) }
+                    Text(
+                        text = "SERVICE DETAILS",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = service.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                            if (service.description.isNotEmpty()) {
+                                Text(
+                                    text = service.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Duration: ${service.durationMinutes} min",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                        Text(
+                            text = service.price,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             SectionTitle("Select Barber")
             LazyRow(
@@ -155,7 +239,7 @@ fun BookingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             SectionTitle("Select Date")
-            val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
+            val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.ENGLISH)
             OutlinedTextField(
                 value = uiState.selectedDate?.format(dateFormatter) ?: "",
                 onValueChange = {},
@@ -171,40 +255,75 @@ fun BookingScreen(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
                     disabledBorderColor = MaterialTheme.colorScheme.outline,
                     disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             SectionTitle("Select Time")
-            val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-            OutlinedTextField(
-                value = uiState.selectedTime?.format(timeFormatter) ?: "",
-                onValueChange = {},
-                readOnly = true,
-                placeholder = { Text("Choose a time") },
-                trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "Clock") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clickable { showTimePicker = true },
-                enabled = false,
-                colors = OutlinedTextFieldDefaults.colors(
-                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                    disabledBorderColor = MaterialTheme.colorScheme.outline,
-                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            
+            if (uiState.selectedBarber == null || uiState.selectedDate == null) {
+                Text(
+                    text = "Please select a barber and a date to see available times",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
+            } else if (filteredTimeSlots.isEmpty()) {
+                Text(
+                    text = "No available slots for the selected date",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            } else {
+                // Manual Grid to ensure ALL slots are printed and visible within the parent scroll
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filteredTimeSlots.chunked(4).forEach { rowSlots ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowSlots.forEach { time ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    TimeSlotItem(
+                                        time = time,
+                                        isSelected = uiState.selectedTime == time,
+                                        enabled = true,
+                                        onClick = { viewModel.onTimeSelected(time) }
+                                    )
+                                }
+                            }
+                            // Fill empty slots in the last row to maintain grid alignment
+                            repeat(4 - rowSlots.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-
         if (showDatePicker) {
+            val selectableDates = remember {
+                object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        // Return true if date is today or in the future
+                        val today = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                        return utcTimeMillis >= today
+                    }
+                }
+            }
+
             val datePickerState = rememberDatePickerState(
-                initialSelectedDateMillis = uiState.selectedDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: Instant.now().toEpochMilli()
+                initialSelectedDateMillis = uiState.selectedDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: Instant.now().toEpochMilli(),
+                selectableDates = selectableDates
             )
             DatePickerDialog(
                 onDismissRequest = { showDatePicker = false },
@@ -226,27 +345,291 @@ fun BookingScreen(
                 DatePicker(state = datePickerState)
             }
         }
+    }
+}
 
-        if (showTimePicker) {
-            val timePickerState = rememberTimePickerState(
-                initialHour = uiState.selectedTime?.hour ?: 12,
-                initialMinute = uiState.selectedTime?.minute ?: 0,
-                is24Hour = true
-            )
-            TimePickerDialog(
-                onCancel = { showTimePicker = false },
-                onConfirm = {
-                    viewModel.onTimeSelected(LocalTime.of(timePickerState.hour, timePickerState.minute))
-                    showTimePicker = false
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AuthGuardScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Book an Appointment", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
                 }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "You need to log in to book an appointment",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Please sign in or create an account to continue",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = onNavigateToLogin,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                TimePicker(state = timePickerState)
+                Text("Go to Login", fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
+@Composable
+fun BookingSuccessScreen(
+    viewModel: BookingViewModel,
+    onNavigateHome: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val response = uiState.bookingResponse
 
+    Scaffold(
+        bottomBar = {
+            Button(
+                onClick = {
+                    viewModel.resetBookingSuccess()
+                    onNavigateHome()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Back to Home", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(60.dp))
+            
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Text(
+                text = "Booking Confirmed!",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Thank you for choosing us!",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            
+            if (response != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        .padding(24.dp)
+                ) {
+                    Text(
+                        text = "APPOINTMENT SUMMARY",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    val dateTime = try {
+                        LocalDateTime.parse(response.startTime)
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    SummaryItem(
+                        icon = Icons.Default.Face,
+                        label = "Service",
+                        value = response.services.joinToString(", ") { it.name }.ifEmpty { uiState.selectedService?.name ?: "" }
+                    )
+                    
+                    SummaryItem(
+                        icon = Icons.Default.Person,
+                        label = "Barber",
+                        value = response.barber.name
+                    )
+
+                    if (dateTime != null) {
+                        val dateFormatter = DateTimeFormatter.ofPattern("EEEE, dd MMM yyyy", Locale.ENGLISH)
+                        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+                        
+                        SummaryItem(
+                            icon = Icons.Default.CalendarMonth,
+                            label = "Date",
+                            value = dateTime.format(dateFormatter)
+                        )
+                        
+                        SummaryItem(
+                            icon = Icons.Default.Schedule,
+                            label = "Time",
+                            value = dateTime.format(timeFormatter)
+                        )
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Total Price",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = uiState.selectedService?.price ?: "$0",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryItem(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+fun TimeSlotItem(time: LocalTime, isSelected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+    Surface(
+        modifier = Modifier
+            .aspectRatio(1.5f)
+            .then(if (enabled) Modifier.clickable { onClick() } else Modifier),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(
+            1.dp,
+            when {
+                isSelected -> MaterialTheme.colorScheme.primary
+                !enabled -> MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+            }
+        ),
+        color = when {
+            isSelected -> MaterialTheme.colorScheme.primary
+            !enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            else -> Color.Transparent
+        }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = time.format(formatter),
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                    !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                }
+            )
+        }
+    }
+}
 
 @Composable
 fun SectionTitle(title: String) {
@@ -259,88 +642,57 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun ServiceItem(service: Service, isSelected: Boolean, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = service.name, fontWeight = FontWeight.Bold)
-                Text(text = "${service.durationMinutes} min", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(text = service.price, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
 fun BarberItem(barber: Barber, isSelected: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier
-            .width(140.dp)
+            .width(120.dp)
+            .height(150.dp)
             .clickable { onClick() },
         border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // avatar
             Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                modifier = Modifier.size(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Face,
-                    contentDescription = null,
-                    modifier = Modifier.padding(8.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Face,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = barber.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-            Text(text = barber.specialization, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = barber.name,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = barber.specialization,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
-}
-
-@Composable
-fun TimePickerDialog(
-    onCancel: () -> Unit,
-    onConfirm: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onCancel,
-        dismissButton = {
-            TextButton(onClick = { onCancel() }) { Text("Cancel") }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm() }) { Text("OK") }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                content()
-            }
-        }
-    )
 }

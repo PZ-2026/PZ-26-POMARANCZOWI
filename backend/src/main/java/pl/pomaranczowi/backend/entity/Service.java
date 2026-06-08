@@ -3,6 +3,10 @@ package pl.pomaranczowi.backend.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+/**
+ * JPA entity representing a service offering (e.g. haircut, beard trim).
+ * Each service has a name, description, duration, price, and active status.
+ */
 @Entity
 @Table(name = "service")
 public class Service {

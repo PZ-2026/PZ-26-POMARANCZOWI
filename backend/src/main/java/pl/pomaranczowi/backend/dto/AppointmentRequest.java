@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotEmpty;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Request DTO for creating or updating appointments with validation constraints.
+ */
 public class AppointmentRequest {
 
     @NotNull(message = "Barber ID is required")

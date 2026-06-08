@@ -4,10 +4,14 @@ import pl.pomaranczowi.backend.entity.AppointmentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * DTO for returning full appointment details with nested barber, client, and service data.
+ */
 public class AppointmentResponse {
 
     private Long appointmentId;
     private BarberDto barber;
+    private UserDto client;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private AppointmentStatus status;
@@ -16,10 +20,11 @@ public class AppointmentResponse {
 
     public AppointmentResponse() {}
 
-    public AppointmentResponse(Long appointmentId, BarberDto barber, LocalDateTime startTime, 
+    public AppointmentResponse(Long appointmentId, BarberDto barber, UserDto client, LocalDateTime startTime,
                            LocalDateTime endTime, AppointmentStatus status, LocalDateTime createdAt, List<ServiceDto> services) {
         this.appointmentId = appointmentId;
         this.barber = barber;
+        this.client = client;
         this.startTime = startTime;
         this.endTime = endTime;
         this.status = status;
@@ -32,6 +37,9 @@ public class AppointmentResponse {
 
     public BarberDto getBarber() { return barber; }
     public void setBarber(BarberDto barber) { this.barber = barber; }
+
+    public UserDto getClient() { return client; }
+    public void setClient(UserDto client) { this.client = client; }
 
     public LocalDateTime getStartTime() { return startTime; }
     public void setStartTime(LocalDateTime startTime) { this.startTime = startTime; }

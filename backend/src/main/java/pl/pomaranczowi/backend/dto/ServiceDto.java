@@ -1,5 +1,8 @@
 package pl.pomaranczowi.backend.dto;
 
+/**
+ * DTO for transferring service offering data.
+ */
 public class ServiceDto {
 
     private Long serviceId;

@@ -2,6 +2,7 @@ package com.example.barbershop.network
 
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -15,6 +16,9 @@ interface AppointmentApi {
     @GET("api/appointments/upcoming")
     suspend fun getUpcomingAppointments(): Response<List<AppointmentResponse>>
 
+    @GET("api/appointments/history")
+    suspend fun getAppointmentHistory(): Response<List<AppointmentResponse>>
+
     @POST("api/appointments")
     suspend fun createAppointment(@Body request: AppointmentRequest): Response<AppointmentResponse>
 
@@ -26,6 +30,9 @@ interface AppointmentApi {
         @Path("id") id: Long,
         @Query("status") status: String
     ): Response<AppointmentResponse>
+
+    @DELETE("api/appointments/{id}")
+    suspend fun cancelAppointment(@Path("id") id: Long): Response<Void>
 }
 
 data class AppointmentRequest(

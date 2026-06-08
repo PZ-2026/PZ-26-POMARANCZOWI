@@ -2,6 +2,9 @@ package pl.pomaranczowi.backend.dto;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO for structured error responses sent to clients.
+ */
 public class ErrorResponse {
 
     private int status;

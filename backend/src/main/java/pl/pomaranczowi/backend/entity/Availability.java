@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalTime;
 
+/**
+ * JPA entity storing a barber's weekly availability window (day of week + time range).
+ */
 @Entity
 @Table(name = "availability")
 public class Availability {

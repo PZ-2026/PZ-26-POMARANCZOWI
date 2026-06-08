@@ -2,6 +2,9 @@ package pl.pomaranczowi.backend.dto;
 
 import pl.pomaranczowi.backend.entity.UserRole;
 
+/**
+ * DTO for authentication responses including JWT token and user profile data.
+ */
 public class AuthResponse {
 
     private String token;

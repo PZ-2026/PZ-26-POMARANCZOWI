@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
+/**
+ * JPA entity representing a system user (client, employee, or admin).
+ * Each user has authentication credentials (password hash), contact details,
+ * a role, and an optional linked barber profile.
+ */
 @Entity
 @Table(name = "\"user\"")
 public class User {

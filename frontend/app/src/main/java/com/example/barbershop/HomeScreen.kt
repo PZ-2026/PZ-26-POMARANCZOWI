@@ -60,7 +60,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToBooking: () -> Unit,
+    onNavigateToBooking: (Long) -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToEmployeePanel: () -> Unit,
     onNavigateToAdminPanel: () -> Unit
@@ -108,11 +108,6 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
-                    }
                 }
             )
         },
@@ -153,11 +148,11 @@ fun HomeScreen(
                         colors = navItemColors
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         selected = selectedItem == 1,
                         onClick = {
                             selectedItem = 1
-                            onNavigateToBooking()
+                            onNavigateToSettings()
                         },
                         colors = navItemColors
                     )
@@ -212,7 +207,13 @@ fun HomeScreen(
                     ServiceItem(
                         title = service.name,
                         price = "$${service.price.toInt()}",
-                        onBookClick = { onNavigateToBooking() }
+                        onBookClick = {
+                            if (NetworkClient.isLoggedIn()) {
+                                onNavigateToBooking(service.serviceId)
+                            } else {
+                                onNavigateToLogin()
+                            }
+                        }
                     )
                 }
             }
@@ -229,7 +230,13 @@ fun HomeScreen(
                     ServiceItem(
                         title = service.name,
                         price = "$${service.price.toInt()}",
-                        onBookClick = { onNavigateToBooking() }
+                        onBookClick = {
+                            if (NetworkClient.isLoggedIn()) {
+                                onNavigateToBooking(service.serviceId)
+                            } else {
+                                onNavigateToLogin()
+                            }
+                        }
                     )
                 }
             }

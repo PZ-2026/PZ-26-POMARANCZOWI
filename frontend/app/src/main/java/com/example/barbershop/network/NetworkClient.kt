@@ -128,4 +128,7 @@ object NetworkClient {
 
     val appointmentApi: AppointmentApi
         get() = retrofit?.create(AppointmentApi::class.java) ?: throw IllegalStateException("NetworkClient not initialized")
+
+    val userApi: UserApi
+        get() = retrofit?.create(UserApi::class.java) ?: throw IllegalStateException("NetworkClient not initialized")
 }

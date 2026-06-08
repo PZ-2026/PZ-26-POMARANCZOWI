@@ -5,47 +5,33 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-
-// Tymczasowy model danych
-data class MockService(
-    val id: Long,
-    val name: String,
-    val durationMinutes: Int,
-    val price: Double
-)
+import com.example.barbershop.network.ServiceDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageServicesScreen(
-    //dodac viewmodel
+    viewModel: ManageServicesViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onNavigate: (String) -> Unit
 ) {
-    // Tymczasowy stan listy
-    var services by remember {
-        mutableStateOf(
-            listOf(
-                MockService(1, "Strzyżenie męskie", 30, 60.0),
-                MockService(2, "Trymowanie brody", 20, 40.0),
-                MockService(3, "Combo (Włosy + Broda)", 60, 90.0)
-            )
-        )
-    }
+    val services by viewModel.services.collectAsState()
 
-    // czy okienko dodawania jest otwarte
-    var showAddDialog by remember { mutableStateOf(false) }
+    var serviceToEdit by remember { mutableStateOf<ServiceDto?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableIntStateOf(2) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                    title = { Text("Services management", fontWeight = FontWeight.Bold) },
+                title = { Text("Services Management", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -53,17 +39,56 @@ fun ManageServicesScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = {
+                    serviceToEdit = null
+                    showDialog = true
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Dodaj usługę")
+                Icon(Icons.Default.Add, contentDescription = "Add service")
+            }
+        },
+        bottomBar = {
+            Column {
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    tonalElevation = 0.dp
+                ) {
+                    val navItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicatorColor = Color.Transparent
+                    )
+
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                        selected = selectedItem == 2,
+                        onClick = { selectedItem = 2; onNavigate("admin_panel") },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        selected = selectedItem == 0,
+                        onClick = { selectedItem = 0; onNavigate("home") },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
+                        selected = selectedItem == 1,
+                        onClick = { selectedItem = 1; onNavigate("booking") },
+                        colors = navItemColors
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
 
-        //Główna lista usług
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,7 +110,7 @@ fun ManageServicesScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = service.name,
                                 style = MaterialTheme.typography.titleMedium,
@@ -93,20 +118,21 @@ fun ManageServicesScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${service.durationMinutes} min | ${service.price} zł",
+                                text = "${service.durationMinutes} min | ${service.price} USD",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        IconButton(onClick = {
-                            // Symulacja usuwania
-                            services = services.filterNot { it.id == service.id }
-                        }) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Usuń",
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                        Row {
+                            IconButton(onClick = {
+                                serviceToEdit = service
+                                showDialog = true
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                            }
+                            IconButton(onClick = { viewModel.deleteService(service.serviceId) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
@@ -114,45 +140,48 @@ fun ManageServicesScreen(
         }
     }
 
-    // Okno dialogowe do dodawania nowej usługi
-    if (showAddDialog) {
-        AddServiceDialog(
-            onDismiss = { showAddDialog = false },
+    if (showDialog) {
+        ServiceFormDialog(
+            service = serviceToEdit,
+            onDismiss = { showDialog = false },
             onConfirm = { name, price, duration ->
-                // Symulacja dodawania
-                val newId = (services.maxOfOrNull { it.id } ?: 0L) + 1L
-                services = services + MockService(newId, name, duration, price)
-                showAddDialog = false
+                if (serviceToEdit == null) {
+                    viewModel.addService(name, price, duration)
+                } else {
+                    viewModel.updateService(serviceToEdit!!.serviceId, name, price, duration)
+                }
+                showDialog = false
             }
         )
     }
 }
 
 @Composable
-fun AddServiceDialog(
+fun ServiceFormDialog(
+    service: ServiceDto?,
     onDismiss: () -> Unit,
     onConfirm: (String, Double, Int) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(service?.name ?: "") }
+    var price by remember { mutableStateOf(service?.price?.toString() ?: "") }
+    var duration by remember { mutableStateOf(service?.durationMinutes?.toString() ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Dodaj nową usługę") },
+        title = { Text(if (service == null) "Add new service" else "Edit service") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nazwa usługi") },
+                    label = { Text("Service name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = price,
                     onValueChange = { price = it },
-                    label = { Text("Cena (zł)") },
+                    label = { Text("Price (USD)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -160,7 +189,7 @@ fun AddServiceDialog(
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { duration = it },
-                    label = { Text("Czas trwania (minuty)") },
+                    label = { Text("Duration (minutes)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -178,12 +207,11 @@ fun AddServiceDialog(
                     }
                 }
             ) {
-                Text("Dodaj")
+                Text(if (service == null) "Add" else "Save")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Anuluj") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
-
 }

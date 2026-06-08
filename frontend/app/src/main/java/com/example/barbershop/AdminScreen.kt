@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,6 +24,7 @@ fun AdminScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedItem by remember { mutableIntStateOf(2) }
 
     LaunchedEffect(Unit) {
         viewModel.loadAdminData()
@@ -55,6 +57,50 @@ fun AdminScreen(
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
+        },
+        bottomBar = {
+            Column {
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    tonalElevation = 0.dp
+                ) {
+                    val navItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        indicatorColor = Color.Transparent
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                        selected = selectedItem == 2,
+                        onClick = {
+                            selectedItem = 2
+                        },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                        selected = selectedItem == 0,
+                        onClick = {
+                            selectedItem = 0
+                            onNavigate("home")
+                        },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
+                        selected = selectedItem == 1,
+                        onClick = {
+                            selectedItem = 1
+                            onNavigate("booking")
+                        },
+                        colors = navItemColors
+                    )
+                }
+            }
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->

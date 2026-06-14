@@ -323,19 +323,42 @@ public class RevenuePdfGenerator {
                         + dto.getPeriod()
                         + " odnotowano "
                         + dto.getAppointmentsCount()
-                        + " wizyt, które wygenerowały przychód "
+                        + " wizyt/ę, które wygenerowały przychód "
                         + dto.getTotalRevenue()
                         + " PLN.";
 
         Paragraph summary =
-                new Paragraph(summaryText)
-                        .setFontSize(11)
-                        .setMarginTop(20)
-                        .setTextAlignment(
-                                TextAlignment.JUSTIFIED
-                        );
+        new Paragraph()
+                .setFontSize(11)
+                .setMarginTop(20)
+                .setTextAlignment(
+                        TextAlignment.JUSTIFIED
+                );
 
-        document.add(summary);
+summary.add("W okresie ");
+
+summary.add(
+        new com.itextpdf.layout.element.Text(
+                dto.getPeriod()
+        ).setBold()
+);
+
+summary.add(
+        " odnotowano "
+                + dto.getAppointmentsCount()
+                + " wizyt/ę, które wygenerowały przychód "
+);
+
+summary.add(
+        new com.itextpdf.layout.element.Text(
+                dto.getTotalRevenue()
+                        + " PLN"
+        ).setBold()
+);
+
+summary.add(".");
+
+document.add(summary);
     }
 
     private void addFooter(Document document) {

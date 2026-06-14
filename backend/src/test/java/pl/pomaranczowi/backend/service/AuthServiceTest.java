@@ -3,6 +3,8 @@ package pl.pomaranczowi.backend.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,25 +70,56 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(jwtService.generateToken(any(User.class))).thenReturn("jwtToken");
 
-        AuthResponse response = authService.register(registerRequest);
+        assertDoesNotThrow(() -> {
+            AuthResponse response = authService.register(registerRequest);
 
-        assertNotNull(response);
-        assertEquals("jwtToken", response.getToken());
-        assertEquals(1L, response.getUserId());
-        assertEquals("Test User", response.getName());
-        assertEquals("test@example.com", response.getEmail());
+            assertAll("register response",
+                () -> assertNotNull(response),
+                () -> assertEquals("jwtToken", response.getToken()),
+                () -> assertEquals(1L, response.getUserId()),
+                () -> assertEquals("Test User", response.getName()),
+                () -> assertEquals("test@example.com", response.getEmail()),
+                () -> assertEquals(UserRole.CLIENT, response.getRole())
+            );
+        });
+
         verify(userRepository).save(any(User.class));
+        verify(jwtService).generateToken(any(User.class));
     }
 
     @Test
     void register_EmailAlreadyExists_ThrowsException() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, 
+        RuntimeException exception = assertThrows(RuntimeException.class,
             () -> authService.register(registerRequest));
 
         assertEquals("Email already exists", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
+        verify(jwtService, never()).generateToken(any());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "existing@test.com, password123, Invalid email or password",
+        "nonexistent@test.com, wrongpass, Invalid email or password"
+    })
+    void login_InvalidCredentials_ThrowsException(String email, String password, String expectedMessage) {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword(password);
+
+        if (email.equals("existing@test.com")) {
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches(password, testUser.getPasswordHash())).thenReturn(false);
+        } else {
+            when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        }
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+            () -> authService.login(request));
+
+        assertEquals(expectedMessage, exception.getMessage());
     }
 
     @Test
@@ -97,10 +130,14 @@ class AuthServiceTest {
 
         AuthResponse response = authService.login(loginRequest);
 
-        assertNotNull(response);
-        assertEquals("jwtToken", response.getToken());
-        assertEquals(1L, response.getUserId());
-        assertEquals("test@example.com", response.getEmail());
+        assertAll("login response",
+            () -> assertNotNull(response),
+            () -> assertEquals("jwtToken", response.getToken()),
+            () -> assertEquals(1L, response.getUserId()),
+            () -> assertEquals("test@example.com", response.getEmail()),
+            () -> assertEquals("Test User", response.getName()),
+            () -> assertEquals(UserRole.CLIENT, response.getRole())
+        );
     }
 
     @Test

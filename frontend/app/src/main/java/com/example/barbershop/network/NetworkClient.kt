@@ -131,4 +131,10 @@ object NetworkClient {
 
     val userApi: UserApi
         get() = retrofit?.create(UserApi::class.java) ?: throw IllegalStateException("NetworkClient not initialized")
+
+    val availabilityApi: AvailabilityApi
+        get() = retrofit?.create(AvailabilityApi::class.java) ?: throw IllegalStateException("NetworkClient not initialized")
+
+    val reportApi: ReportApi
+        get() = retrofit?.create(ReportApi::class.java) ?: throw IllegalStateException("NetworkClient not initialized")
 }

@@ -13,4 +13,6 @@ import java.util.List;
 public interface AvailabilityRepository extends JpaRepository<Availability, Long> {
     List<Availability> findByBarberBarberId(Long barberId);
     Optional<Availability> findByBarberBarberIdAndDayOfWeek(Long barberId, Integer dayOfWeek);
+
+    Boolean existsByBarberBarberIdAndDayOfWeek(Long barberId, Integer dayOfWeek);
 }

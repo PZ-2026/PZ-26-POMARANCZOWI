@@ -41,7 +41,8 @@ data class BarberDto(
 )
 
 data class AvailabilityDto(
-    val availabilityId: Long,
+    val availabilityId: Long? = null,
+    val barberId: Long? = null,
     val dayOfWeek: Int,
     val startTime: String,
     val endTime: String

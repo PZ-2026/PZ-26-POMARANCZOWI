@@ -59,6 +59,12 @@ public class ServiceService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Creates a new service.
+     *
+     * @param serviceDto the service data to create
+     * @return the created service DTO
+     */
     public ServiceDto createService(ServiceDto serviceDto) {
         pl.pomaranczowi.backend.entity.Service service = new pl.pomaranczowi.backend.entity.Service();
         service.setName(serviceDto.getName());
@@ -71,6 +77,14 @@ public class ServiceService {
         return mapToDto(savedService);
     }
 
+    /**
+     * Updates an existing service.
+     *
+     * @param id         the ID of the service to update
+     * @param serviceDto the updated service data
+     * @return the updated service DTO
+     * @throws RuntimeException if the service is not found
+     */
     public ServiceDto updateService(Long id, ServiceDto serviceDto) {
         pl.pomaranczowi.backend.entity.Service service = serviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Service not found"));
@@ -85,6 +99,12 @@ public class ServiceService {
         return mapToDto(updatedService);
     }
 
+    /**
+     * Deletes a service by its ID.
+     *
+     * @param id the ID of the service to delete
+     * @throws RuntimeException if the service is not found
+     */
     public void deleteService(Long id) {
         if (!serviceRepository.existsById(id)) {
             throw new RuntimeException("Service not found");

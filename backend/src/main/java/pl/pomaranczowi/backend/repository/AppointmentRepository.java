@@ -16,8 +16,23 @@ import java.util.List;
  */
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
+    /**
+     * Finds all appointments for a specific client.
+     *
+     * @param userId the client user ID
+     * @return list of appointments
+     */
     List<Appointment> findByClientUserId(Long userId);
 
+    /**
+     * Finds appointments for a client that started before a given time and have
+     * any of the specified statuses.
+     *
+     * @param userId   the client user ID
+     * @param before   the upper bound time
+     * @param statuses list of statuses to include
+     * @return list of matching appointments
+     */
     List<Appointment> findByClientUserIdAndStartTimeBeforeAndStatusIn(
         Long userId,
         LocalDateTime before,
@@ -124,5 +139,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     """)
     List<Object[]> getBarberStatistics();
 
+    /**
+     * Finds all appointments for a specific barber.
+     *
+     * @param barberId the barber ID
+     * @return list of appointments
+     */
     List<Appointment> findByBarberBarberId(Long barberId);
 }

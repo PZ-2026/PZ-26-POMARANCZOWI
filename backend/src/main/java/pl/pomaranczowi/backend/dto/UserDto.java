@@ -4,7 +4,9 @@ import pl.pomaranczowi.backend.entity.UserRole;
 import java.time.LocalDateTime;
 
 /**
- * DTO for transferring user data without the password hash.
+ * DTO for transferring user data.
+ * The password field is used only for receiving data from the frontend during creation/update,
+ * it should not be returned in responses.
  */
 public class UserDto {
 
@@ -14,6 +16,7 @@ public class UserDto {
     private String phone;
     private LocalDateTime createdAt;
     private UserRole role;
+    private String password;
 
     public UserDto() {}
 
@@ -45,4 +48,7 @@ public class UserDto {
 
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 }

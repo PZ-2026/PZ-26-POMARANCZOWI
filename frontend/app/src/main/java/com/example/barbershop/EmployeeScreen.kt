@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,13 @@ fun EmployeeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+
+    // PDF states
+    val isReportLoading by viewModel.isReportLoading.collectAsState()
+    val context = LocalContext.current
+
+    val currentBarberId = uiState.barberId
+    val isBarberIdLoaded = uiState.isBarberIdLoaded
 
     // Filter states
     var selectedStatuses by remember { mutableStateOf(setOf("BOOKED")) }
@@ -132,9 +140,63 @@ fun EmployeeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            SectionHeader("Schedule Filters")
+            // PDF generation
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "My Performance & Statistics",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Generate and download a comprehensive PDF report containing your service history and statistics.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    Button(
+                        onClick = { currentBarberId?.let { viewModel.downloadMyStatistics(context, it) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isReportLoading && currentBarberId != null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isBarberIdLoaded && currentBarberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        if (isReportLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Generating PDF...")
+                        } else if (!isBarberIdLoaded) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Loading Profile...")
+                        } else if (currentBarberId == null) {
+                            Icon(Icons.Default.Warning, contentDescription = "Error")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Barber Profile Missing!")
+                        } else {
+                            Icon(Icons.Default.Assessment, contentDescription = "PDF Report")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Download My PDF Statistics")
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Schedule Filters",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
             // Filter Section
             Card(
@@ -151,7 +213,7 @@ fun EmployeeScreen(
                         StatusFilterItem("Done", "COMPLETED", selectedStatuses) { updated -> selectedStatuses = updated }
                         StatusFilterItem("Cancelled", "CANCELLED", selectedStatuses) { updated -> selectedStatuses = updated }
                     }
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -242,20 +304,20 @@ fun EmployeeAppointmentCard(
 ) {
     val isCompleted = appointment.status == "COMPLETED"
     val isCancelled = appointment.status == "CANCELLED"
-    
+
     val dateTime = try { LocalDateTime.parse(appointment.startTime) } catch (e: Exception) { null }
     val dateFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM", Locale.ENGLISH)
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     val statusColor = when (appointment.status) {
-        "COMPLETED" -> Color(0xFF2E7D32) // Green
-        "CANCELLED" -> Color(0xFFC62828) // Red
+        "COMPLETED" -> Color(0xFF2E7D32)
+        "CANCELLED" -> Color(0xFFC62828)
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    
+
     val statusContainerColor = when (appointment.status) {
-        "COMPLETED" -> Color(0xFFE8F5E9) // Light Green
-        "CANCELLED" -> Color(0xFFFFEBEE) // Light Red
+        "COMPLETED" -> Color(0xFFE8F5E9)
+        "CANCELLED" -> Color(0xFFFFEBEE)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 

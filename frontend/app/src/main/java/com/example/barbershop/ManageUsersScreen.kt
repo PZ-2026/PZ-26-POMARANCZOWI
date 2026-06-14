@@ -166,9 +166,16 @@ fun ManageUsersScreen(
         UserFormDialog(
             user = userToEdit,
             onDismiss = { showDialog = false },
-            onConfirm = { name, email, phone, role ->
+            onConfirm = { name, email, phone, role, password ->
                 viewModel.saveUser(
-                    UserDto(userId = userToEdit?.userId, name = name, email = email, phone = phone, role = role)
+                    UserDto(
+                        userId = userToEdit?.userId,
+                        name = name,
+                        email = email,
+                        phone = phone,
+                        role = role,
+                        password = password
+                    )
                 )
                 showDialog = false
             }
@@ -181,19 +188,21 @@ fun ManageUsersScreen(
 fun UserFormDialog(
     user: UserDto?,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, String) -> Unit
+    onConfirm: (String, String, String, String, String?) -> Unit
 ) {
     var name by remember { mutableStateOf(user?.name ?: "") }
     var email by remember { mutableStateOf(user?.email ?: "") }
     var phone by remember { mutableStateOf(user?.phone ?: "") }
-    var role by remember { mutableStateOf(user?.role ?: "CLIENT") } // Zmieniono domyślną rolę
+    var role by remember { mutableStateOf(user?.role ?: "CLIENT") }
+    var password by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
     val roles = listOf("ADMIN", "EMPLOYEE", "CLIENT")
+    val isNewUser = user == null
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "Add new user" else "Edit user") },
+        title = { Text(if (isNewUser) "Add new user" else "Edit user") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -219,6 +228,16 @@ fun UserFormDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                if (isNewUser) {
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Temporary Password") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 ExposedDropdownMenuBox(
                     expanded = expanded,
@@ -254,8 +273,8 @@ fun UserFormDialog(
         },
         confirmButton = {
             Button(onClick = {
-                if (name.isNotBlank() && email.isNotBlank() && phone.isNotBlank()) {
-                    onConfirm(name, email, phone, role)
+                if (name.isNotBlank() && email.isNotBlank() && phone.isNotBlank() && (!isNewUser || password.isNotBlank())) {
+                    onConfirm(name, email, phone, role, if (isNewUser) password else null)
                 }
             }) { Text("Save") }
         },

@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.barbershop.network.BarberDto
 import com.example.barbershop.network.NetworkClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +34,27 @@ class ReportsViewModel : ViewModel() {
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val reportApi = NetworkClient.reportApi
+    private val barberApi = NetworkClient.barberApi
+
+    private val _barbers = MutableStateFlow<List<BarberDto>>(emptyList())
+    val barbers: StateFlow<List<BarberDto>> = _barbers.asStateFlow()
+
+    init {
+        loadBarbers()
+    }
+
+    private fun loadBarbers() {
+        viewModelScope.launch {
+            try {
+                val response = barberApi.getBarbers()
+                if (response.isSuccessful) {
+                    _barbers.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun downloadReport(context: Context, reportType: String, barberId: Long = 1L) {
         viewModelScope.launch {
@@ -51,7 +71,7 @@ class ReportsViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val bytes = response.body()!!.bytes()
-                    savePdf(context, bytes, "Report_${reportType}.pdf")
+                    savePdf(context, bytes, reportType, barberId)
                 } else {
                     Toast.makeText(context, "Download error (code ${response.code()})", Toast.LENGTH_SHORT).show()
                 }
@@ -63,14 +83,21 @@ class ReportsViewModel : ViewModel() {
         }
     }
 
-    private fun savePdf(context: Context, bytes: ByteArray, fileName: String) {
+    private fun savePdf(context: Context, bytes: ByteArray, reportType: String, barberId: Long? = null) {
         try {
             val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            val timeStamp = System.currentTimeMillis()
+            val fileName = if (barberId != null) {
+                "Report_${reportType}_Barber_${barberId}_${timeStamp}.pdf"
+            } else {
+                "Report_${reportType}_${timeStamp}.pdf"
+            }
+
             val file = File(dir, fileName)
             FileOutputStream(file).use { it.write(bytes) }
-            Toast.makeText(context, "Report downloaded to:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Saved as: ${fileName}", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(context, "Error saving PDF file", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Error while saving PDF", Toast.LENGTH_SHORT).show()
         }
     }
 }
@@ -83,8 +110,11 @@ fun ReportsScreen(
     onNavigate: (String) -> Unit
 ) {
     val isLoading by viewModel.isLoading.collectAsState()
+    val barbers by viewModel.barbers.collectAsState()
     val context = LocalContext.current
-    var barberIdInput by remember { mutableStateOf("1") }
+
+    var selectedBarber by remember { mutableStateOf<BarberDto?>(null) }
+    var expandedBarber by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableIntStateOf(2) }
 
     Scaffold(
@@ -96,54 +126,21 @@ fun ReportsScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         bottomBar = {
             Column {
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    tonalElevation = 0.dp
-                ) {
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                     val navItemColors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         indicatorColor = Color.Transparent
                     )
-
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                        selected = selectedItem == 2,
-                        onClick = {
-                            selectedItem = 2
-                            onNavigate("admin_panel")
-                        },
-                        colors = navItemColors
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        selected = selectedItem == 0,
-                        onClick = {
-                            selectedItem = 0
-                            onNavigate("home")
-                        },
-                        colors = navItemColors
-                    )
-                    NavigationBarItem(
-                        icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
-                        selected = selectedItem == 1,
-                        onClick = {
-                            selectedItem = 1
-                            onNavigate("booking")
-                        },
-                        colors = navItemColors
-                    )
+                    NavigationBarItem(icon = { Icon(Icons.Default.Person, null) }, selected = selectedItem == 2, onClick = { selectedItem = 2; onNavigate("admin_panel") }, colors = navItemColors)
+                    NavigationBarItem(icon = { Icon(Icons.Default.Home, null) }, selected = selectedItem == 0, onClick = { selectedItem = 0; onNavigate("home") }, colors = navItemColors)
+                    NavigationBarItem(icon = { Icon(Icons.Default.DateRange, null) }, selected = selectedItem == 1, onClick = { selectedItem = 1; onNavigate("booking") }, colors = navItemColors)
                 }
             }
         },
@@ -151,20 +148,37 @@ fun ReportsScreen(
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Generate PDF Reports",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Generate PDF Reports", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = barberIdInput,
-                    onValueChange = { barberIdInput = it.filter { char -> char.isDigit() } },
-                    label = { Text("Barber ID (for statistics report)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                ExposedDropdownMenuBox(
+                    expanded = expandedBarber,
+                    onExpandedChange = { expandedBarber = !expandedBarber },
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    OutlinedTextField(
+                        value = selectedBarber?.name ?: "Select Barber",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Barber") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedBarber) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedBarber,
+                        onDismissRequest = { expandedBarber = false }
+                    ) {
+                        barbers.forEach { barber ->
+                            DropdownMenuItem(
+                                text = { Text(barber.name) },
+                                onClick = {
+                                    selectedBarber = barber
+                                    expandedBarber = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -178,7 +192,7 @@ fun ReportsScreen(
                             title = "Barber Statistics",
                             icon = Icons.Default.Person,
                             onClick = {
-                                val id = barberIdInput.toLongOrNull() ?: 1L
+                                val id = selectedBarber?.barberId ?: 1L
                                 viewModel.downloadReport(context, "barber-statistics", id)
                             }
                         )
@@ -201,13 +215,8 @@ fun ReportsScreen(
             }
 
             if (isLoading) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)) {
+                    Box(contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 }
             }
         }

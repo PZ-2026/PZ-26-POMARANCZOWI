@@ -26,6 +26,10 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import com.example.reports.dto.ServiceRevenueDto;
+
+
+
 public class RevenuePdfGenerator {
 
     private final PdfDocumentService pdfDocumentService;
@@ -82,6 +86,8 @@ public class RevenuePdfGenerator {
         addSeparator(document);
 
         addSummary(document, dto);
+
+        addRevenueByService(document, dto);
 
         addFooter(document);
 
@@ -404,4 +410,58 @@ document.add(summary);
                                 .setFontSize(10)
                 );
     }
+
+    private void addRevenueByService(
+        Document document,
+        RevenueReportDto dto
+) {
+
+    document.add(
+            new Paragraph(
+                    "\nPRZYCHÓD WG USŁUG"
+            )
+                    .setBold()
+                    .setFontSize(16)
+    );
+
+    Table table =
+            new Table(
+                    UnitValue.createPercentArray(
+                            new float[]{3, 1}
+                    )
+            );
+
+    table.setWidth(
+            UnitValue.createPercentValue(100)
+    );
+
+    table.addHeaderCell(
+            new Cell().add(
+                    new Paragraph("Usługa")
+                            .setBold()
+            )
+    );
+
+    table.addHeaderCell(
+            new Cell().add(
+                    new Paragraph("Przychód")
+                            .setBold()
+            )
+    );
+
+    for (ServiceRevenueDto service
+            : dto.getServicesRevenue()) {
+
+        table.addCell(
+                service.getServiceName()
+        );
+
+        table.addCell(
+                service.getRevenue()
+                        + " PLN"
+        );
+    }
+
+    document.add(table);
+}
 }

@@ -1,5 +1,5 @@
 package com.example.reports.dto;
-
+import java.util.List;
 import java.math.BigDecimal;
 
 public class RevenueReportDto {
@@ -9,6 +9,8 @@ public class RevenueReportDto {
     private Integer appointmentsCount;
 
     private BigDecimal totalRevenue;
+
+    private List<ServiceRevenueDto> servicesRevenue;
 
     public String getPeriod() {
         return period;
@@ -33,4 +35,15 @@ public class RevenueReportDto {
     public void setTotalRevenue(BigDecimal totalRevenue) {
         this.totalRevenue = totalRevenue;
     }
+
+    public List<ServiceRevenueDto> getServicesRevenue() {
+    return servicesRevenue;
+}
+
+public void setServicesRevenue(
+        List<ServiceRevenueDto> servicesRevenue
+) {
+    this.servicesRevenue =
+            servicesRevenue;
+}
 }

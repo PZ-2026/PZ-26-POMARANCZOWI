@@ -10,12 +10,14 @@ import pl.pomaranczowi.backend.entity.User;
 import pl.pomaranczowi.backend.entity.UserRole;
 import pl.pomaranczowi.backend.repository.BarberRepository;
 import pl.pomaranczowi.backend.repository.UserRepository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * REST controller for managing users. Provides endpoints for CRUD operations on user accounts.
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -29,6 +31,11 @@ public class UserController {
     @Autowired
     private BarberRepository barberRepository;
 
+    /**
+     * Retrieves a list of all users.
+     *
+     * @return list of all users
+     */
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> users = userRepository.findAll().stream()
@@ -38,6 +45,12 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * Creates a new user.
+     *
+     * @param userDto the user data
+     * @return the created user
+     */
     @PostMapping
     public ResponseEntity<UserDto> createUser(@RequestBody UserDto userDto) {
         User user = new User();
@@ -65,6 +78,13 @@ public class UserController {
         return ResponseEntity.ok(mapToDto(savedUser));
     }
 
+    /**
+     * Updates an existing user.
+     *
+     * @param id      the user ID
+     * @param userDto the updated user data
+     * @return the updated user, or 404 if not found
+     */
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
         return userRepository.findById(id).map(user -> {
@@ -96,6 +116,12 @@ public class UserController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Deletes a user by ID.
+     *
+     * @param id the user ID
+     * @return 200 OK if deleted, 404 if not found
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         if (userRepository.existsById(id)) {

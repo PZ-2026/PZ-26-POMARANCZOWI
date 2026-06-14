@@ -223,7 +223,7 @@ public class BarberStatisticsPdfGenerator {
         Table metricsTable =
                 new Table(
                         UnitValue.createPercentArray(
-                                new float[]{1, 1, 1}
+                                new float[]{1, 1, 1, 1}
                         )
                 );
 
@@ -272,9 +272,22 @@ public class BarberStatisticsPdfGenerator {
                         )
                 );
 
+        Cell workTimeCard =
+        createMetricCard(
+                "CZAS PRACY",
+                dto.getTotalWorkMinutes()
+                        + " min",
+                new DeviceRgb(
+                        155,
+                        89,
+                        182
+                )
+        );
+
         metricsTable.addCell(visitsCard);
         metricsTable.addCell(revenueCard);
         metricsTable.addCell(averageCard);
+        metricsTable.addCell(workTimeCard);
 
         document.add(metricsTable);
     }
@@ -375,6 +388,31 @@ public class BarberStatisticsPdfGenerator {
     summary.add(
             new Text(".")
     );
+
+    summary.add(
+        new Text(
+                "\nNajczęściej wykonywana usługa: "
+        )
+);
+
+summary.add(
+        new Text(
+                dto.getMostPopularService()
+        ).setBold()
+);
+
+summary.add(
+        new Text(
+                "\nŁączny czas pracy: "
+        )
+);
+
+summary.add(
+        new Text(
+                dto.getTotalWorkMinutes()
+                        + " minut"
+        ).setBold()
+);
 
     document.add(summary);
 }

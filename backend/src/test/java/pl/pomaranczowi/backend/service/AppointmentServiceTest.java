@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pl.pomaranczowi.backend.dto.AppointmentRequest;
 import pl.pomaranczowi.backend.dto.AppointmentResponse;
-import pl.pomaranczowi.backend.dto.BarberDto;
 import pl.pomaranczowi.backend.entity.*;
 import pl.pomaranczowi.backend.repository.*;
 
@@ -113,8 +112,33 @@ class AppointmentServiceTest {
 
         AppointmentResponse response = appointmentService.createAppointment(request, 1L);
 
+        assertAll("created appointment",
+            () -> assertNotNull(response),
+            () -> assertEquals(AppointmentStatus.BOOKED, response.getStatus()),
+            () -> assertEquals(1L, response.getAppointmentId())
+        );
+        verify(appointmentRepository).save(any(Appointment.class));
+    }
+
+    @Test
+    void createAppointment_EmptyServiceIds_CreatesWithZeroDuration() {
+        AppointmentRequest request = new AppointmentRequest();
+        request.setBarberId(1L);
+        request.setServiceIds(Collections.emptyList());
+        request.setStartTime(LocalDateTime.now().plusDays(1).withHour(12).withMinute(0));
+
+        when(barberRepository.findById(1L)).thenReturn(Optional.of(testBarber));
+        when(availabilityRepository.findByBarberBarberId(1L)).thenReturn(Arrays.asList(testAvailability));
+        when(appointmentRepository.findByBarberBarberIdAndStartTimeAfter(any(), any())).thenReturn(Collections.emptyList());
+        when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment a = invocation.getArgument(0);
+            a.setAppointmentId(1L);
+            return a;
+        });
+
+        AppointmentResponse response = appointmentService.createAppointment(request, 1L);
+
         assertNotNull(response);
-        assertEquals(AppointmentStatus.BOOKED, response.getStatus());
         verify(appointmentRepository).save(any(Appointment.class));
     }
 
@@ -195,8 +219,11 @@ class AppointmentServiceTest {
 
         List<AppointmentResponse> responses = appointmentService.getAppointmentsByUser(1L);
 
-        assertEquals(1, responses.size());
-        assertEquals(1L, responses.get(0).getAppointmentId());
+        assertAll("appointments list",
+            () -> assertEquals(1, responses.size()),
+            () -> assertEquals(1L, responses.get(0).getAppointmentId()),
+            () -> assertEquals(AppointmentStatus.BOOKED, responses.get(0).getStatus())
+        );
     }
 
     @Test
@@ -213,10 +240,20 @@ class AppointmentServiceTest {
         when(appointmentRepository.findById(1L)).thenReturn(Optional.of(testAppointment));
         when(appointmentRepository.save(any(Appointment.class))).thenReturn(testAppointment);
 
-        appointmentService.cancelAppointment(1L, 1L);
+        assertDoesNotThrow(() -> appointmentService.cancelAppointment(1L, 1L));
 
         assertEquals(AppointmentStatus.CANCELLED, testAppointment.getStatus());
         verify(appointmentRepository).save(testAppointment);
+    }
+
+    @Test
+    void cancelAppointment_NotFound_ThrowsException() {
+        when(appointmentRepository.findById(999L)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class,
+            () -> appointmentService.cancelAppointment(999L, 1L));
+
+        assertEquals("Appointment not found", exception.getMessage());
     }
 
     @Test
@@ -236,7 +273,10 @@ class AppointmentServiceTest {
 
         AppointmentResponse response = appointmentService.updateStatus(1L, AppointmentStatus.COMPLETED, 2L);
 
-        assertEquals(AppointmentStatus.COMPLETED, testAppointment.getStatus());
+        assertAll("updated status",
+            () -> assertEquals(AppointmentStatus.COMPLETED, testAppointment.getStatus()),
+            () -> assertNotNull(response)
+        );
     }
 
     @Test

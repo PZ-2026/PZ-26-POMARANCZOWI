@@ -1,6 +1,7 @@
 package pl.pomaranczowi.backend.service;
 
 import com.example.reports.dto.RevenueReportDto;
+import com.example.reports.dto.ServiceRevenueDto;
 
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import java.util.List;
+
+import com.example.reports.dto.ServiceRevenueDto;
+import java.util.Comparator;
 
 /**
  * Service for generating revenue reports over a specified period (week or month).
@@ -36,31 +40,123 @@ public class RevenueReportService {
      * @param period the report period ("week" or "month")
      * @return the revenue report DTO containing period label, appointment count, and total revenue
      */
-    public RevenueReportDto generateRevenueReport(String period) {
-        LocalDateTime dateFrom;
-        String periodLabel;
+    public RevenueReportDto generateRevenueReport(
+        String period
+) {
 
-        if (period.equalsIgnoreCase("week")) {
-            dateFrom = LocalDateTime.now().minusWeeks(1);
-            periodLabel = "Ostatni tydzień";
-        } else {
-            dateFrom = LocalDateTime.now().minusMonths(1);
-            periodLabel = "Ostatni miesiąc";
-        }
+    LocalDateTime dateFrom;
+    String periodLabel;
 
-        List<AppointmentService> appointmentServices =
-                appointmentServiceRepository.findByAppointmentStartTimeAfter(dateFrom);
+    if (period.equalsIgnoreCase("week")) {
 
-        BigDecimal totalRevenue = appointmentServices.stream()
-                .map(appointmentService ->
-                        BigDecimal.valueOf(appointmentService.getService().getPrice()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        dateFrom =
+                LocalDateTime.now()
+                        .minusWeeks(1);
 
-        RevenueReportDto dto = new RevenueReportDto();
-        dto.setPeriod(periodLabel);
-        dto.setAppointmentsCount(appointmentServices.size());
-        dto.setTotalRevenue(totalRevenue);
+        periodLabel =
+                "Ostatni tydzień";
 
-        return dto;
+    } else {
+
+        dateFrom =
+                LocalDateTime.now()
+                        .minusMonths(1);
+
+        periodLabel =
+                "Ostatni miesiąc";
     }
+
+    List<AppointmentService> appointmentServices =
+            appointmentServiceRepository
+                    .findByAppointmentStartTimeAfter(
+                            dateFrom
+                    );
+
+    BigDecimal totalRevenue =
+            appointmentServices.stream()
+                    .map(
+                            appointmentService ->
+                                    BigDecimal.valueOf(
+                                            appointmentService
+                                                    .getService()
+                                                    .getPrice()
+                                    )
+                    )
+                    .reduce(
+                            BigDecimal.ZERO,
+                            BigDecimal::add
+                    );
+
+    List<ServiceRevenueDto> servicesRevenue =
+            appointmentServices.stream()
+                    .collect(
+                            java.util.stream.Collectors
+                                    .groupingBy(
+                                            appointmentService ->
+                                                    appointmentService
+                                                            .getService()
+                                                            .getName(),
+                                            java.util.stream.Collectors
+                                                    .mapping(
+                                                            appointmentService ->
+                                                                    BigDecimal.valueOf(
+                                                                            appointmentService
+                                                                                    .getService()
+                                                                                    .getPrice()
+                                                                    ),
+                                                            java.util.stream.Collectors
+                                                                    .reducing(
+                                                                            BigDecimal.ZERO,
+                                                                            BigDecimal::add
+                                                                    )
+                                                    )
+                                    )
+                    )
+                    .entrySet()
+                    .stream()
+                    .map(entry -> {
+
+                        ServiceRevenueDto dto =
+                                new ServiceRevenueDto();
+
+                        dto.setServiceName(
+                                entry.getKey()
+                        );
+
+                        dto.setRevenue(
+                                entry.getValue()
+                        );
+
+                        return dto;
+                    })
+                    .sorted(
+                            java.util.Comparator
+                                    .comparing(
+                                            ServiceRevenueDto::getRevenue
+                                    )
+                                    .reversed()
+                    )
+                    .toList();
+
+    RevenueReportDto dto =
+            new RevenueReportDto();
+
+    dto.setPeriod(
+            periodLabel
+    );
+
+    dto.setAppointmentsCount(
+            appointmentServices.size()
+    );
+
+    dto.setTotalRevenue(
+            totalRevenue
+    );
+
+    dto.setServicesRevenue(
+            servicesRevenue
+    );
+
+    return dto;
+}
 }

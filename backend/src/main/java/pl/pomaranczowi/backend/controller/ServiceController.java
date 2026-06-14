@@ -52,17 +52,35 @@ public class ServiceController {
     }
 
 
+    /**
+     * Creates a new service.
+     *
+     * @param serviceDto the service data
+     * @return the created service
+     */
     @PostMapping
     public ResponseEntity<ServiceDto> createService(@RequestBody ServiceDto serviceDto) {
-        // Zakładam, że masz metodę save lub create w ServiceService
         return ResponseEntity.ok(serviceService.createService(serviceDto));
     }
 
+    /**
+     * Updates an existing service.
+     *
+     * @param id         the service ID
+     * @param serviceDto the updated service data
+     * @return the updated service
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ServiceDto> updateService(@PathVariable Long id, @RequestBody ServiceDto serviceDto) {
-    return ResponseEntity.ok(serviceService.updateService(id, serviceDto));
+        return ResponseEntity.ok(serviceService.updateService(id, serviceDto));
     }
 
+    /**
+     * Deletes a service by ID.
+     *
+     * @param id the service ID
+     * @return 200 OK if deleted
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         serviceService.deleteService(id);

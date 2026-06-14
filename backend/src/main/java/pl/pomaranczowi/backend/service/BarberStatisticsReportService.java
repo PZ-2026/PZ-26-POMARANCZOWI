@@ -41,29 +41,110 @@ public class BarberStatisticsReportService {
      *         and average revenue per visit
      * @throws RuntimeException if the barber is not found
      */
-    public BarberStatisticsReportDto generateReport(Long barberId) {
-        Barber barber = barberRepository.findById(barberId)
-                .orElseThrow(() -> new RuntimeException("Barber not found"));
+    public BarberStatisticsReportDto generateReport(
+        Long barberId
+) {
 
-        List<AppointmentService> services =
-                appointmentServiceRepository.findByAppointmentBarberBarberId(barberId);
+    Barber barber =
+            barberRepository.findById(barberId)
+                    .orElseThrow(
+                            () -> new RuntimeException(
+                                    "Barber not found"
+                            )
+                    );
 
-        BigDecimal totalRevenue = services.stream()
-                .map(s -> BigDecimal.valueOf(s.getService().getPrice()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    List<AppointmentService> services =
+            appointmentServiceRepository
+                    .findByAppointmentBarberBarberId(
+                            barberId
+                    );
 
-        int visitsCount = services.size();
+    BigDecimal totalRevenue =
+            services.stream()
+                    .map(s ->
+                            BigDecimal.valueOf(
+                                    s.getService()
+                                            .getPrice()
+                            )
+                    )
+                    .reduce(
+                            BigDecimal.ZERO,
+                            BigDecimal::add
+                    );
 
-        BigDecimal averageRevenue = visitsCount == 0
-                ? BigDecimal.ZERO
-                : totalRevenue.divide(BigDecimal.valueOf(visitsCount), 2, RoundingMode.HALF_UP);
+    int visitsCount =
+            services.size();
 
-        BarberStatisticsReportDto dto = new BarberStatisticsReportDto();
-        dto.setBarberName(barber.getUser().getName());
-        dto.setAppointmentsCount(visitsCount);
-        dto.setTotalRevenue(totalRevenue);
-        dto.setAverageRevenuePerVisit(averageRevenue);
+    BigDecimal averageRevenue =
+            visitsCount == 0
+                    ? BigDecimal.ZERO
+                    : totalRevenue.divide(
+                            BigDecimal.valueOf(
+                                    visitsCount
+                            ),
+                            2,
+                            RoundingMode.HALF_UP
+                    );
 
-        return dto;
-    }
+    String mostPopularService =
+            services.stream()
+                    .collect(
+                            java.util.stream.Collectors
+                                    .groupingBy(
+                                            s -> s.getService()
+                                                    .getName(),
+                                            java.util.stream.Collectors
+                                                    .counting()
+                                    )
+                    )
+                    .entrySet()
+                    .stream()
+                    .max(
+                            java.util.Map.Entry
+                                    .comparingByValue()
+                    )
+                    .map(
+                            java.util.Map.Entry::getKey
+                    )
+                    .orElse(
+                            "Brak danych"
+                    );
+
+    int totalWorkMinutes =
+            services.stream()
+                    .mapToInt(
+                            s -> s.getService()
+                                    .getDurationMinutes()
+                    )
+                    .sum();
+
+    BarberStatisticsReportDto dto =
+            new BarberStatisticsReportDto();
+
+    dto.setBarberName(
+            barber.getUser().getName()
+    );
+
+    dto.setAppointmentsCount(
+            visitsCount
+    );
+
+    dto.setTotalRevenue(
+            totalRevenue
+    );
+
+    dto.setAverageRevenuePerVisit(
+            averageRevenue
+    );
+
+    dto.setMostPopularService(
+            mostPopularService
+    );
+
+    dto.setTotalWorkMinutes(
+            totalWorkMinutes
+    );
+
+    return dto;
+}
 }

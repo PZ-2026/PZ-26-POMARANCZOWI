@@ -39,6 +39,12 @@ public class AvailabilityService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Retrieves all availability slots for a specific barber.
+     *
+     * @param barberId the ID of the barber
+     * @return list of availability DTOs for the barber
+     */
     public List<AvailabilityDto> getAvailabilityByBarber(Long barberId) {
         List<Availability> availabilities = availabilityRepository.findByBarberBarberId(barberId);
         return availabilities.stream()
@@ -46,6 +52,12 @@ public class AvailabilityService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Maps an Availability entity to its DTO representation.
+     *
+     * @param availability the availability entity
+     * @return the corresponding availability DTO
+     */
     private AvailabilityDto mapToDto(Availability availability) {
         return new AvailabilityDto(
                 availability.getAvailabilityId(),
@@ -56,10 +68,27 @@ public class AvailabilityService {
         );
     }
 
+    /**
+     * Checks whether the given user has the ADMIN role.
+     *
+     * @param user the user to check
+     * @return true if the user has ADMIN role, false otherwise
+     */
     private boolean isAdmin(User user) {
         return user.getRole() != null && user.getRole().name().equalsIgnoreCase("ADMIN");
     }
 
+    /**
+     * Creates a new availability slot for a barber.
+     * If the requesting user is an admin, the barber ID must be explicitly provided in the DTO.
+     * If the user is a barber, their own barber profile is used.
+     *
+     * @param dto          the availability data
+     * @param barberUserId the user ID of the barber (or admin) creating the slot
+     * @return the created availability DTO
+     * @throws RuntimeException if the user is not found, the barber is not found,
+     *                          or an admin does not provide a barber ID
+     */
     public AvailabilityDto createAvailability(AvailabilityDto dto, Long barberUserId) {
         User user = userRepository.findById(barberUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -86,6 +115,16 @@ public class AvailabilityService {
         return mapToDto(availability);
     }
 
+    /**
+     * Updates an existing availability slot.
+     * Only the barber who owns the slot or an admin may update it.
+     *
+     * @param id           the ID of the availability slot to update
+     * @param dto          the updated availability data
+     * @param barberUserId the user ID of the requester
+     * @return the updated availability DTO
+     * @throws RuntimeException if the slot is not found or the user is not authorized
+     */
     public AvailabilityDto updateAvailability(Long id, AvailabilityDto dto, Long barberUserId) {
         User user = userRepository.findById(barberUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -105,6 +144,14 @@ public class AvailabilityService {
         return mapToDto(availability);
     }
 
+    /**
+     * Deletes an availability slot by its ID.
+     * Only the barber who owns the slot or an admin may delete it.
+     *
+     * @param id           the ID of the availability slot to delete
+     * @param barberUserId the user ID of the requester
+     * @throws RuntimeException if the slot is not found or the user is not authorized
+     */
     public void deleteAvailability(Long id, Long barberUserId) {
         User user = userRepository.findById(barberUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -120,6 +167,17 @@ public class AvailabilityService {
         availabilityRepository.delete(availability);
     }
 
+    /**
+     * Computes available time slots for a barber on a given date.
+     * Considers the barber's defined availability, existing non-cancelled appointments,
+     * and a 5-minute buffer before/after each appointment for collision detection.
+     *
+     * @param barberId        the ID of the barber
+     * @param date            the date to check
+     * @param serviceDuration the duration of the service to be booked
+     * @return list of available time slot strings (e.g. "10:00", "10:15")
+     * @throws RuntimeException if no availability is defined for that day
+     */
     public List<String> getAvailableTimes(Long barberId, LocalDate date, Duration serviceDuration) {
         int dayOfWeek = date.getDayOfWeek().getValue();
         Availability availability = availabilityRepository.findByBarberBarberIdAndDayOfWeek(barberId, dayOfWeek)

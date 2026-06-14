@@ -12,6 +12,19 @@ import java.util.Optional;
  * Provides lookup by email and role.
  */
 public interface UserRepository extends JpaRepository<User, Long> {
+    /**
+     * Finds a user by their email address.
+     *
+     * @param email the email address
+     * @return the user, if found
+     */
     Optional<User> findByEmail(String email);
+
+    /**
+     * Finds all users with the specified role.
+     *
+     * @param role the user role
+     * @return list of users with that role
+     */
     List<User> findByRole(UserRole role);
 }

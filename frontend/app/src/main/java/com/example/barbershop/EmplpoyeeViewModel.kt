@@ -146,7 +146,11 @@ class EmployeeViewModel : ViewModel() {
 
     private fun savePdf(context: Context, bytes: ByteArray, fileName: String) {
         try {
-            val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+            if (!dir.exists()) {
+                dir.mkdirs()
+            }
             val file = File(dir, fileName)
             FileOutputStream(file).use { it.write(bytes) }
             Toast.makeText(context, "Statistics downloaded to:\n${file.absolutePath}", Toast.LENGTH_LONG).show()

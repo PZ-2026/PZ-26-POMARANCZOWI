@@ -85,7 +85,7 @@ class ReportsViewModel : ViewModel() {
 
     private fun savePdf(context: Context, bytes: ByteArray, reportType: String, barberId: Long? = null) {
         try {
-            val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val timeStamp = System.currentTimeMillis()
             val fileName = if (barberId != null) {
                 "Report_${reportType}_Barber_${barberId}_${timeStamp}.pdf"

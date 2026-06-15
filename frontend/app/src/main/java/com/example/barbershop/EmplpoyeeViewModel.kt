@@ -18,6 +18,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class EmployeeUiState(
     val employeeName: String = "",
@@ -132,7 +135,11 @@ class EmployeeViewModel : ViewModel() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val bytes = response.body()!!.bytes()
-                    savePdf(context, bytes, "My_Statistics_Barber_${barberId}.pdf")
+
+                    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                    val uniqueFileName = "My_Statistics_Barber_${barberId}_${timeStamp}.pdf"
+
+                    savePdf(context, bytes, uniqueFileName)
                 } else {
                     Toast.makeText(context, "Error downloading report (code ${response.code()})", Toast.LENGTH_SHORT).show()
                 }
